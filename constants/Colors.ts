@@ -1,26 +1,55 @@
+// constants/Colors.ts
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * HomeCooks app color palette
+ * Primary colors defined in requirements:
+ * #05668d - Deep Blue (Primary)
+ * #028090 - Teal (Secondary)
+ * #00a896 - Sea Green (Tertiary)
+ * #02c39a - Mint (Accent)
+ * #f0f3bd - Light Yellow (Light)
  */
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// Theme color definitions
+const primaryColor = '#05668d';
+const secondaryColor = '#028090';
+const tertiaryColor = '#00a896';
+const accentColor = '#02c39a';
+const lightColor = '#f0f3bd';
 
+export const COLORS = {
+  primary: primaryColor,
+  secondary: secondaryColor,
+  tertiary: tertiaryColor,
+  accent: accentColor,
+  light: lightColor,
+  white: '#ffffff',
+  black: '#000000',
+  gray: '#cccccc',
+  lightGray: '#eeeeee',
+  error: '#ff3b30',
+  success: '#34c759',
+  warning: '#ffcc00',
+  transparent: 'transparent',
+};
+
+// Keeping the existing light/dark theme structure for compatibility
 export const Colors = {
   light: {
     text: '#11181C',
     background: '#fff',
-    tint: tintColorLight,
+    tint: primaryColor,
     icon: '#687076',
     tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    tabIconSelected: primaryColor,
   },
   dark: {
     text: '#ECEDEE',
     background: '#151718',
-    tint: tintColorDark,
+    tint: lightColor,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    tabIconSelected: lightColor,
   },
 };
+
+export default Colors;
