@@ -1,0 +1,207 @@
+// app/(tabs)/profile.tsx
+import React from 'react';
+import { StyleSheet, View, TouchableOpacity, Image, Alert } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { COLORS } from '@/constants/Colors';
+import { useAuth } from '@/app/contexts/AuthContext';
+
+export default function ProfileScreen() {
+    const { user, logout } = useAuth();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            // Navigation will be handled by the root layout based on auth state
+        } catch (error) {
+            console.error('Error logging out:', error);
+            Alert.alert('Error', 'Failed to log out. Please try again.');
+        }
+    };
+
+    const confirmLogout = () => {
+        Alert.alert(
+            'Logout',
+            'Are you sure you want to log out?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Logout', onPress: handleLogout, style: 'destructive' }
+            ]
+        );
+    };
+
+    const navigateToEditProfile = () => {
+        // This would navigate to a profile editing screen
+        Alert.alert('Coming Soon', 'Profile editing will be available in the next update.');
+    };
+
+    return (
+        <ThemedView style={styles.container}>
+            <Stack.Screen options={{ title: 'My Profile', headerShown: true }} />
+
+            <View style={styles.profileHeader}>
+                <View style={styles.avatarContainer}>
+                    {user?.photoURL ? (
+                        <Image source={{ uri: user.photoURL }} style={styles.avatar} />
+                    ) : (
+                        <View style={styles.avatarPlaceholder}>
+                            <ThemedText style={styles.avatarText}>
+                                {user?.displayName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || '?'}
+                            </ThemedText>
+                        </View>
+                    )}
+                </View>
+
+                <ThemedText type="title" style={styles.name}>
+                    {user?.displayName || 'User'}
+                </ThemedText>
+                <ThemedText style={styles.email}>{user?.email}</ThemedText>
+                <ThemedText style={styles.userType}>
+                    {user?.userType === 'cook' ? 'Home Cook' : 'Customer'}
+                </ThemedText>
+
+                <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={navigateToEditProfile}
+                >
+                    <ThemedText style={styles.editButtonText}>Edit Profile</ThemedText>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.menuContainer}>
+                <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/orders')}>
+                    <Ionicons name="receipt-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                    <ThemedText style={styles.menuText}>My Orders</ThemedText>
+                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                </TouchableOpacity>
+
+                {user?.userType === 'cook' && (
+                    <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cook/meals')}>
+                        <Ionicons name="restaurant-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                        <ThemedText style={styles.menuText}>My Meals</ThemedText>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                )}
+
+                <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
+                    <Ionicons name="heart-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                    <ThemedText style={styles.menuText}>Favorites</ThemedText>
+                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
+                    <Ionicons name="settings-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                    <ThemedText style={styles.menuText}>Settings</ThemedText>
+                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
+                    <Ionicons name="help-circle-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                    <ThemedText style={styles.menuText}>Help & Support</ThemedText>
+                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
+                <Ionicons name="log-out-outline" size={20} color={COLORS.error} style={styles.logoutIcon} />
+                <ThemedText style={styles.logoutText}>Logout</ThemedText>
+            </TouchableOpacity>
+        </ThemedView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    profileHeader: {
+        alignItems: 'center',
+        paddingVertical: 24,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    avatarContainer: {
+        marginBottom: 16,
+    },
+    avatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+    },
+    avatarPlaceholder: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: COLORS.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarText: {
+        color: '#fff',
+        fontSize: 40,
+        fontWeight: 'bold',
+    },
+    name: {
+        fontSize: 24,
+        marginBottom: 4,
+    },
+    email: {
+        fontSize: 16,
+        color: '#666',
+        marginBottom: 4,
+    },
+    userType: {
+        fontSize: 14,
+        color: COLORS.primary,
+        marginBottom: 16,
+        fontWeight: '500',
+    },
+    editButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: COLORS.primary,
+    },
+    editButtonText: {
+        color: '#fff',
+        fontWeight: '500',
+    },
+    menuContainer: {
+        marginTop: 20,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    menuIcon: {
+        marginRight: 16,
+    },
+    menuText: {
+        flex: 1,
+        fontSize: 16,
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 'auto',
+        marginBottom: 40,
+        paddingVertical: 12,
+    },
+    logoutIcon: {
+        marginRight: 8,
+    },
+    logoutText: {
+        color: COLORS.error,
+        fontSize: 16,
+        fontWeight: '500',
+    },
+});

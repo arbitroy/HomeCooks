@@ -48,6 +48,12 @@ export default function MealDetailScreen() {
             try {
                 setLoading(true);
                 
+                if (!mealId) {
+                    Alert.alert('Error', 'No meal ID provided');
+                    router.back();
+                    return;
+                }
+                
                 // Load meal details
                 const mealData = await getMealById(mealId);
                 if (!mealData) {
@@ -173,7 +179,7 @@ export default function MealDetailScreen() {
             Alert.alert(
                 'Order Placed Successfully',
                 'Your order has been sent to the cook for confirmation.',
-                [{ text: 'View My Orders', onPress: () => router.push('/orders') }]
+                [{ text: 'View My Orders', onPress: () => router.push('/(tabs)/orders') }]
             );
         } catch (error) {
             console.error('Error placing order:', error);
