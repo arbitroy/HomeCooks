@@ -1,6 +1,6 @@
 // app/(tabs)/profile.tsx
 import React from 'react';
-import { StyleSheet, View, TouchableOpacity, Image, Alert } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
@@ -41,90 +41,92 @@ export default function ProfileScreen() {
     return (
         <ThemedView style={styles.container}>
             <Stack.Screen options={{ title: 'My Profile', headerShown: true }} />
+            
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.profileHeader}>
+                    <View style={styles.avatarContainer}>
+                        {user?.photoURL ? (
+                            <Image source={{ uri: user.photoURL }} style={styles.avatar} />
+                        ) : (
+                            <View style={styles.avatarPlaceholder}>
+                                <ThemedText style={styles.avatarText}>
+                                    {user?.displayName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || '?'}
+                                </ThemedText>
+                            </View>
+                        )}
+                    </View>
 
-            <View style={styles.profileHeader}>
-                <View style={styles.avatarContainer}>
-                    {user?.photoURL ? (
-                        <Image source={{ uri: user.photoURL }} style={styles.avatar} />
-                    ) : (
-                        <View style={styles.avatarPlaceholder}>
-                            <ThemedText style={styles.avatarText}>
-                                {user?.displayName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || '?'}
-                            </ThemedText>
-                        </View>
-                    )}
+                    <ThemedText type="title" style={styles.name}>
+                        {user?.displayName || 'User'}
+                    </ThemedText>
+                    <ThemedText style={styles.email}>{user?.email}</ThemedText>
+                    <ThemedText style={styles.userType}>
+                        {user?.userType === 'cook' ? 'Home Cook' : 'Customer'}
+                    </ThemedText>
+
+                    <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={navigateToEditProfile}
+                    >
+                        <ThemedText style={styles.editButtonText}>Edit Profile</ThemedText>
+                    </TouchableOpacity>
                 </View>
 
-                <ThemedText type="title" style={styles.name}>
-                    {user?.displayName || 'User'}
-                </ThemedText>
-                <ThemedText style={styles.email}>{user?.email}</ThemedText>
-                <ThemedText style={styles.userType}>
-                    {user?.userType === 'cook' ? 'Home Cook' : 'Customer'}
-                </ThemedText>
-
-                <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={navigateToEditProfile}
-                >
-                    <ThemedText style={styles.editButtonText}>Edit Profile</ThemedText>
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.menuContainer}>
-                <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/orders')}>
-                    <Ionicons name="receipt-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
-                    <ThemedText style={styles.menuText}>My Orders</ThemedText>
-                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </TouchableOpacity>
-
-                {user?.userType === 'cook' && (
-                    <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cook/meals')}>
-                        <Ionicons name="restaurant-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
-                        <ThemedText style={styles.menuText}>My Meals</ThemedText>
+                <View style={styles.menuContainer}>
+                    <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/orders')}>
+                        <Ionicons name="receipt-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                        <ThemedText style={styles.menuText}>My Orders</ThemedText>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
-                )}
 
-                {user?.userType === 'cook' && (
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push('/cook/profile-setup')}
-                    >
-                        <Ionicons
-                            name="restaurant-outline"
-                            size={24}
-                            color={COLORS.primary}
-                            style={styles.menuIcon}
-                        />
-                        <ThemedText style={styles.menuText}>Cook Profile Setup</ThemedText>
+                    {user?.userType === 'cook' && (
+                        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cook/meals')}>
+                            <Ionicons name="restaurant-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                            <ThemedText style={styles.menuText}>My Meals</ThemedText>
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </TouchableOpacity>
+                    )}
+
+                    {user?.userType === 'cook' && (
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => router.push('/cook/profile-setup')}
+                        >
+                            <Ionicons
+                                name="restaurant-outline"
+                                size={24}
+                                color={COLORS.primary}
+                                style={styles.menuIcon}
+                            />
+                            <ThemedText style={styles.menuText}>Cook Profile Setup</ThemedText>
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
+                        <Ionicons name="heart-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                        <ThemedText style={styles.menuText}>Favorites</ThemedText>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
-                )}
 
-                <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
-                    <Ionicons name="heart-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
-                    <ThemedText style={styles.menuText}>Favorites</ThemedText>
-                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
+                        <Ionicons name="settings-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                        <ThemedText style={styles.menuText}>Settings</ThemedText>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
+                        <Ionicons name="help-circle-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
+                        <ThemedText style={styles.menuText}>Help & Support</ThemedText>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
+                    <Ionicons name="log-out-outline" size={20} color={COLORS.error} style={styles.logoutIcon} />
+                    <ThemedText style={styles.logoutText}>Logout</ThemedText>
                 </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
-                    <Ionicons name="settings-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
-                    <ThemedText style={styles.menuText}>Settings</ThemedText>
-                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
-                    <Ionicons name="help-circle-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
-                    <ThemedText style={styles.menuText}>Help & Support</ThemedText>
-                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
-                <Ionicons name="log-out-outline" size={20} color={COLORS.error} style={styles.logoutIcon} />
-                <ThemedText style={styles.logoutText}>Logout</ThemedText>
-            </TouchableOpacity>
+            </ScrollView>
         </ThemedView>
     );
 }
@@ -132,6 +134,10 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        paddingBottom: 30, // Add some padding at the bottom
     },
     profileHeader: {
         alignItems: 'center',
@@ -208,8 +214,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 'auto',
-        marginBottom: 40,
+        marginTop: 30,
+        marginBottom: 30,
         paddingVertical: 12,
     },
     logoutIcon: {
