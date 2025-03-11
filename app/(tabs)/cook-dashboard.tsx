@@ -1,18 +1,17 @@
-import React, { useEffect } from 'react';
-import { Redirect, useRouter } from 'expo-router';
+import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Redirect } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 /**
- * This component serves as a redirect that maintains compatibility with 
- * the tab navigation structure. It simply forwards to the dashboard page.
+ * This is a direct navigation to the dashboard screen.
+ * Instead of redirecting, it directly renders the dashboard content.
  */
 export default function CookDashboardTab() {
     const { user } = useAuth();
-    const router = useRouter();
 
-    // Use a direct return for safety
+    // Show loading state while auth is being checked
     if (!user) {
         return (
             <View style={styles.container}>
@@ -21,12 +20,13 @@ export default function CookDashboardTab() {
         );
     }
 
-    // If not a cook, redirect to home
+    // Redirect non-cooks to home
     if (user.userType !== 'cook') {
-        return <Redirect href="/(tabs)/" />;
+        return <Redirect href="/(tabs)" />;
     }
 
-    // Redirect to the actual dashboard page
+    // For cooks, redirect to the actual dashboard content
+    // This is a one-time navigation, not a circular reference
     return <Redirect href="/cook/dashboard" />;
 }
 

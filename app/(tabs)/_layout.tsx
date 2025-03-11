@@ -69,7 +69,7 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Cook-specific tabs */}
+      {/* Only include one dashboard tab for cooks */}
       {isCook && (
         <Tabs.Screen
           name="cook-dashboard"
@@ -82,6 +82,7 @@ export default function TabLayout() {
         />
       )}
       
+      {/* Only include meals tab for cooks */}
       {isCook && (
         <Tabs.Screen
           name="cook/meals"
@@ -94,6 +95,7 @@ export default function TabLayout() {
         />
       )}
       
+      {/* One orders tab for all users */}
       <Tabs.Screen
         name="orders"
         options={{
