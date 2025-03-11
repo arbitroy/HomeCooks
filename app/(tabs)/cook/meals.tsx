@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import {
+    StyleSheet,
+    View,
+    FlatList,
+    TouchableOpacity,
+    Image,
+    Alert,
+    ActivityIndicator,
+    Animated
+} from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -14,6 +23,7 @@ export default function CookMealsScreen() {
     const [meals, setMeals] = useState<Meal[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [fabAnimation] = useState(new Animated.Value(0));
 
     // Load cook's meals
     const loadMeals = async () => {
@@ -37,10 +47,25 @@ export default function CookMealsScreen() {
         loadMeals();
     }, [user]);
 
+    // Animate FAB on mount
+    useEffect(() => {
+        Animated.spring(fabAnimation, {
+            toValue: 1,
+            friction: 6,
+            tension: 50,
+            useNativeDriver: true
+        }).start();
+    }, []);
+
     // Handle refresh
     const handleRefresh = () => {
         setRefreshing(true);
         loadMeals();
+    };
+
+    // Navigate to add meal screen
+    const navigateToAddMeal = () => {
+        router.push('/cook/addMeal');
     };
 
     // Handle delete
@@ -79,111 +104,194 @@ export default function CookMealsScreen() {
     // Render meal item
     const renderMealItem = ({ item }: { item: Meal }) => (
         <View style={styles.mealCard}>
-            <Image
-                source={{ uri: item.imageUrl || '/api/placeholder/400/200' }}
-                style={styles.mealImage}
-                defaultSource={require('@/assets/images/placeholder-meal.png')}
-            />
-            
+            <TouchableOpacity
+                style={styles.mealImageContainer}
+                onPress={() => router.push(`/meal/${item.id}`)}
+            >
+                <Image
+                    source={{ uri: item.imageUrl || '/api/placeholder/400/200' }}
+                    style={styles.mealImage}
+                    defaultSource={require('@/assets/images/placeholder-meal.png')}
+                />
+
+                <View style={styles.cuisineTag}>
+                    <ThemedText style={styles.cuisineText}>{item.cuisineType}</ThemedText>
+                </View>
+
+                <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: item.available ? COLORS.success : COLORS.gray }
+                ]}>
+                    <ThemedText style={styles.statusText}>
+                        {item.available ? 'Available' : 'Unavailable'}
+                    </ThemedText>
+                </View>
+            </TouchableOpacity>
+
             <View style={styles.mealInfo}>
                 <ThemedText type="defaultSemiBold" style={styles.mealName}>
                     {item.name}
                 </ThemedText>
-                
-                <ThemedText style={styles.mealPrice}>
-                    ${item.price.toFixed(2)}
+
+                <ThemedText numberOfLines={2} style={styles.mealDescription}>
+                    {item.description}
                 </ThemedText>
-                
-                <View style={styles.mealStatusContainer}>
-                    <View style={[
-                        styles.statusIndicator,
-                        { backgroundColor: item.available ? COLORS.success : COLORS.gray }
-                    ]} />
-                    <ThemedText style={styles.mealStatus}>
-                        {item.available ? 'Available' : 'Unavailable'}
+
+                <View style={styles.mealDetails}>
+                    <ThemedText style={styles.mealPrice}>
+                        ${item.price.toFixed(2)}
                     </ThemedText>
+
+                    <View style={styles.prepTimeContainer}>
+                        <Ionicons name="time-outline" size={16} color={COLORS.primary} />
+                        <ThemedText style={styles.prepTimeText}>
+                            {item.preparationTime} min
+                        </ThemedText>
+                    </View>
                 </View>
-            </View>
-            
-            <View style={styles.actionsContainer}>
-                <TouchableOpacity 
-                    style={styles.actionButton}
-                    onPress={() => handleAvailabilityToggle(item)}
-                >
-                    <Ionicons
-                        name={item.available ? "eye-off-outline" : "eye-outline"}
-                        size={24}
-                        color={COLORS.primary}
-                    />
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                    style={styles.actionButton}
-                    onPress={() => router.push(`/cook/editMeal?id=${item.id}`)}
-                >
-                    <Ionicons name="create-outline" size={24} color={COLORS.primary} />
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                    style={styles.actionButton}
-                    onPress={() => handleDelete(item.id)}
-                >
-                    <Ionicons name="trash-outline" size={24} color={COLORS.error} />
-                </TouchableOpacity>
+
+                <View style={styles.actionsContainer}>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleAvailabilityToggle(item)}
+                    >
+                        <Ionicons
+                            name={item.available ? "eye-off-outline" : "eye-outline"}
+                            size={24}
+                            color={COLORS.primary}
+                        />
+                        <ThemedText style={styles.actionButtonText}>
+                            {item.available ? 'Hide' : 'Show'}
+                        </ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => router.push(`/cook/editMeal?id=${item.id}`)}
+                    >
+                        <Ionicons name="create-outline" size={24} color={COLORS.primary} />
+                        <ThemedText style={styles.actionButtonText}>Edit</ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleDelete(item.id)}
+                    >
+                        <Ionicons name="trash-outline" size={24} color={COLORS.error} />
+                        <ThemedText style={[styles.actionButtonText, { color: COLORS.error }]}>
+                            Delete
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
 
-    // Empty list message
+    // Render section header
+    const renderSectionHeader = () => (
+        <View style={styles.sectionHeader}>
+            <ThemedText type="subtitle">Your Menu</ThemedText>
+            <TouchableOpacity
+                style={styles.addMealButton}
+                onPress={navigateToAddMeal}
+            >
+                <Ionicons name="add" size={20} color="#fff" />
+                <ThemedText style={styles.addMealButtonText}>Add Meal</ThemedText>
+            </TouchableOpacity>
+        </View>
+    );
+
+    // Render empty list message
     const renderEmptyList = () => {
         if (loading) return null;
-        
+
         return (
             <View style={styles.emptyContainer}>
-                <Ionicons name="restaurant-outline" size={64} color={COLORS.gray} />
+                <Ionicons name="restaurant-outline" size={80} color={COLORS.gray} />
+                <ThemedText style={styles.emptyTitle}>No Meals Yet</ThemedText>
                 <ThemedText style={styles.emptyText}>
-                    You haven't added any meals yet
+                    Start adding delicious meals to your menu and attract hungry customers.
                 </ThemedText>
-                <TouchableOpacity 
-                    style={styles.addButton}
-                    onPress={() => router.push('/cook/addMeal')}
+                <TouchableOpacity
+                    style={styles.addFirstMealButton}
+                    onPress={navigateToAddMeal}
                 >
-                    <ThemedText style={styles.addButtonText}>Add Your First Meal</ThemedText>
+                    <Ionicons name="add-circle-outline" size={24} color="#fff" />
+                    <ThemedText style={styles.addFirstMealButtonText}>
+                        Create Your First Meal
+                    </ThemedText>
                 </TouchableOpacity>
             </View>
         );
     };
 
+    // FAB animation styles
+    const fabScale = fabAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 1]
+    });
+
+    const fabRotation = fabAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg']
+    });
+
     return (
         <ThemedView style={styles.container}>
-            <Stack.Screen 
+            <Stack.Screen
                 options={{
                     title: 'My Meals',
                     headerRight: () => (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.headerButton}
-                            onPress={() => router.push('/cook/addMeal')}
+                            onPress={navigateToAddMeal}
                         >
-                            <Ionicons name="add" size={24} color={COLORS.primary} />
+                            <Ionicons name="add-circle" size={28} color={COLORS.primary} />
                         </TouchableOpacity>
                     ),
-                }} 
+                }}
             />
-            
-            {loading && !refreshing ? (
+
+            {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
+                    <ThemedText style={styles.loadingText}>Loading your meals...</ThemedText>
                 </View>
             ) : (
-                <FlatList
-                    data={meals}
-                    renderItem={renderMealItem}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.listContent}
-                    ListEmptyComponent={renderEmptyList}
-                    onRefresh={handleRefresh}
-                    refreshing={refreshing}
-                />
+                <>
+                    <FlatList
+                        data={meals}
+                        renderItem={renderMealItem}
+                        keyExtractor={(item) => item.id}
+                        contentContainerStyle={styles.listContent}
+                        ListHeaderComponent={meals.length > 0 ? renderSectionHeader : null}
+                        ListEmptyComponent={renderEmptyList}
+                        onRefresh={handleRefresh}
+                        refreshing={refreshing}
+                    />
+
+                    {/* Floating Action Button */}
+                    {meals.length > 0 && (
+                        <Animated.View
+                            style={[
+                                styles.fab,
+                                {
+                                    transform: [
+                                        { scale: fabScale },
+                                        { rotate: fabRotation }
+                                    ]
+                                }
+                            ]}
+                        >
+                            <TouchableOpacity
+                                style={styles.fabButton}
+                                onPress={navigateToAddMeal}
+                            >
+                                <Ionicons name="add" size={30} color="#fff" />
+                            </TouchableOpacity>
+                        </Animated.View>
+                    )}
+                </>
             )}
         </ThemedView>
     );
@@ -198,89 +306,185 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+        color: '#666',
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    addMealButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+    },
+    addMealButtonText: {
+        color: '#fff',
+        marginLeft: 4,
+        fontWeight: '500',
+    },
     listContent: {
-        padding: 16,
-        paddingBottom: 80,
         flexGrow: 1,
+        paddingBottom: 80,
     },
     mealCard: {
         backgroundColor: '#fff',
-        borderRadius: 8,
+        borderRadius: 12,
         overflow: 'hidden',
-        marginBottom: 16,
+        margin: 16,
+        marginBottom: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 2,
+        elevation: 3,
+    },
+    mealImageContainer: {
+        position: 'relative',
     },
     mealImage: {
         width: '100%',
-        height: 150,
+        height: 180,
         resizeMode: 'cover',
     },
+    cuisineTag: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 16,
+    },
+    cuisineText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    statusBadge: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 16,
+    },
+    statusText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
     mealInfo: {
-        padding: 12,
+        padding: 16,
     },
     mealName: {
         fontSize: 18,
-        marginBottom: 4,
-    },
-    mealPrice: {
-        fontSize: 16,
-        color: COLORS.primary,
         marginBottom: 8,
     },
-    mealStatusContainer: {
+    mealDescription: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 12,
+    },
+    mealDetails: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    mealPrice: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    prepTimeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    statusIndicator: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginRight: 6,
-    },
-    mealStatus: {
+    prepTimeText: {
         fontSize: 14,
-        color: '#777',
+        color: '#666',
+        marginLeft: 4,
     },
     actionsContainer: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
-        padding: 8,
+        justifyContent: 'space-around',
         borderTopWidth: 1,
         borderTopColor: '#f0f0f0',
+        paddingTop: 12,
     },
     actionButton: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        alignItems: 'center',
+        padding: 8,
+    },
+    actionButtonText: {
+        marginTop: 4,
+        fontSize: 12,
+        color: COLORS.primary,
     },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 100,
+        padding: 32,
+        marginTop: 80,
+    },
+    emptyTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginTop: 16,
+        marginBottom: 8,
     },
     emptyText: {
-        marginTop: 16,
         fontSize: 16,
-        color: '#777',
+        color: '#666',
+        textAlign: 'center',
         marginBottom: 24,
     },
-    addButton: {
+    addFirstMealButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: COLORS.primary,
         paddingVertical: 12,
-        paddingHorizontal: 24,
+        paddingHorizontal: 20,
         borderRadius: 8,
     },
-    addButtonText: {
+    addFirstMealButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: '600',
+        marginLeft: 8,
     },
     headerButton: {
         padding: 8,
         marginRight: 8,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 24,
+        right: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    fabButton: {
+        backgroundColor: COLORS.primary,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

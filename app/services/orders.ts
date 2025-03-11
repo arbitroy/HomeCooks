@@ -118,20 +118,25 @@ export const createOrder = async (currentUser: User, orderInput: OrderInput): Pr
         // Calculate total amount
         const totalAmount = meal.price * orderInput.quantity;
 
-        // Create order object
-        const orderData = {
+        // Create order object with clean data - no undefined values
+        const orderData: any = {
             customerId: currentUser.uid,
             customerName: currentUser.displayName || 'Customer',
             cookId: meal.cookId,
             cookName: cookData.displayName || 'Cook',
             mealId: meal.id,
             mealName: meal.name,
-            mealImageUrl: meal.imageUrl,
+            mealImageUrl: meal.imageUrl || null, // Using null if imageUrl is undefined
             quantity: orderInput.quantity,
             status: 'new' as OrderStatus,
             deliveryMethod: orderInput.deliveryMethod,
-            deliveryAddress: orderInput.deliveryAddress,
-            specialInstructions: orderInput.specialInstructions,
+            // Only include deliveryAddress if it exists and has some content
+            ...(orderInput.deliveryMethod === 'delivery' && orderInput.deliveryAddress && 
+                Object.keys(orderInput.deliveryAddress).length > 0 ? 
+                { deliveryAddress: orderInput.deliveryAddress } : {}),
+            // Only include specialInstructions if it exists and not empty
+            ...(orderInput.specialInstructions && orderInput.specialInstructions.trim() !== '' ? 
+                { specialInstructions: orderInput.specialInstructions } : {}),
             requestedTime: Timestamp.fromDate(orderInput.requestedTime),
             totalAmount: totalAmount,
             createdAt: serverTimestamp(),
@@ -140,12 +145,16 @@ export const createOrder = async (currentUser: User, orderInput: OrderInput): Pr
 
         const orderRef = await addDoc(collection(firestore, 'orders'), orderData);
         
+        // Construct the return object, ensuring all fields are present with default values if needed
         return {
             id: orderRef.id,
             ...orderData,
             requestedTime: orderInput.requestedTime,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            // Ensure the optional fields have sensible defaults if omitted
+            specialInstructions: orderData.specialInstructions || '',
+            deliveryAddress: orderData.deliveryAddress || null
         } as Order;
     } catch (error) {
         console.error('Error creating order:', error);

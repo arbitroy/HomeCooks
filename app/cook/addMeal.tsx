@@ -66,6 +66,7 @@ export default function AddMealScreen() {
     const [allergens, setAllergens] = useState<string[]>([]);
     const [currentAllergen, setCurrentAllergen] = useState('');
     const [availabilitySchedule, setAvailabilitySchedule] = useState<MealAvailability>(initialAvailability);
+    const scrollViewRef = React.useRef<KeyboardAwareScrollView>(null);
 
     // Permission request for image picker
     const requestMediaLibraryPermission = async () => {
@@ -151,7 +152,7 @@ export default function AddMealScreen() {
     };
 
     // Submit meal creation
-    const handleSubmit = async (values: any, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
+    const handleSubmit = async (values: any, { setSubmitting, resetForm }: { setSubmitting: (isSubmitting: boolean) => void, resetForm: () => void }) => {
         try {
             if (!user) {
                 Alert.alert('Error', 'You must be logged in to create a meal');
@@ -178,9 +179,41 @@ export default function AddMealScreen() {
             };
 
             await createMeal(user, mealInput);
-            Alert.alert('Success', 'Meal created successfully', [
-                { text: 'OK', onPress: () => router.push('/cook/meals') }
-            ]);
+
+            // Show success alert with multiple options
+            Alert.alert(
+                'Meal Created',
+                `"${values.name}" has been added to your menu.`,
+                [
+                    {
+                        text: 'Add Another Meal',
+                        onPress: () => {
+                            // Reset form for a new meal
+                            resetForm();
+                            setIngredients([]);
+                            setAllergens([]);
+                            setImageUri(null);
+                            setAvailabilitySchedule(initialAvailability);
+
+                            // Scroll to top (would need to add a ref to ScrollView)
+                            if (scrollViewRef.current) {
+                                scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: true });
+                            }
+                        }
+                    },
+                    {
+                        text: 'View All Meals',
+                        onPress: () => router.push('/cook/meals')
+                    },
+                    {
+                        text: 'View This Meal',
+                        style: 'default',
+                        // Navigate to the meal detail screen
+                        // Note: This would require the createMeal function to return the created meal ID
+                        onPress: (mealId) => router.push(`/meal/${mealId}`)
+                    }
+                ]
+            );
         } catch (error) {
             console.error('Error creating meal:', error);
             let errorMessage = 'Failed to create meal';
@@ -193,11 +226,13 @@ export default function AddMealScreen() {
         }
     };
 
+
     return (
         <ThemedView style={styles.container}>
             <Stack.Screen options={{ title: 'Add New Meal' }} />
 
             <KeyboardAwareScrollView
+                ref={scrollViewRef}
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
             >

@@ -136,23 +136,23 @@ export default function MealDetailScreen() {
                 Alert.alert('Error', 'You must be logged in to place an order');
                 return;
             }
-
+    
             if (user.userType !== 'customer') {
                 Alert.alert('Error', 'Only customers can place orders');
                 return;
             }
-
+    
             if (!meal) {
                 Alert.alert('Error', 'Meal information is missing');
                 return;
             }
-
+    
             // Validate delivery address if delivery method is selected
             if (deliveryMethod === 'delivery' && !deliveryAddress) {
                 Alert.alert('Error', 'Please provide a delivery address');
                 return;
             }
-
+    
             // Minimum order validation
             if (cookProfile?.minimumOrderAmount && calculateTotal() < cookProfile.minimumOrderAmount) {
                 Alert.alert(
@@ -161,18 +161,32 @@ export default function MealDetailScreen() {
                 );
                 return;
             }
-
+    
             setSubmitting(true);
-
+    
+            // Create a clean delivery address object if method is delivery
+            const cleanDeliveryAddress = deliveryMethod === 'delivery' && deliveryAddress ? 
+                {
+                    street: deliveryAddress.street || '',
+                    city: deliveryAddress.city || '',
+                    region: deliveryAddress.region || '',
+                    postalCode: deliveryAddress.postalCode || '',
+                    country: deliveryAddress.country || '',
+                    formattedAddress: deliveryAddress.formattedAddress || ''
+                } : null;
+    
+            // Clean special instructions
+            const cleanSpecialInstructions = specialInstructions.trim() || undefined;
+    
             const orderInput: OrderInput = {
                 mealId,
                 quantity,
                 deliveryMethod,
-                deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress || undefined : undefined,
-                specialInstructions: specialInstructions.trim() || undefined,
+                deliveryAddress: cleanDeliveryAddress || undefined,
+                specialInstructions: cleanSpecialInstructions,
                 requestedTime: selectedTime
             };
-
+    
             await createOrder(user, orderInput);
             
             setOrderModalVisible(false);

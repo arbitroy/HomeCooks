@@ -7,7 +7,8 @@ import {
     Image,
     ActivityIndicator,
     Alert,
-    RefreshControl
+    RefreshControl,
+    Text
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,17 +19,16 @@ import { COLORS } from '@/constants/Colors';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { 
     Order, 
-    getCustomerOrders, 
+    OrderStatus, 
     getCookOrders, 
     getActiveCookOrders,
-    updateOrderStatus,
-    OrderStatus
+    updateOrderStatus 
 } from '@/app/services/orders';
 
-// Tab for cook order filtering
+// Tab for order filtering
 type OrderTab = 'active' | 'all' | 'history';
 
-export default function OrdersScreen() {
+export default function CookOrdersScreen() {
     const { user } = useAuth();
     const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
@@ -48,39 +48,32 @@ export default function OrdersScreen() {
                 return;
             }
             
+            if (user.userType !== 'cook') {
+                Alert.alert('Error', 'Only cooks can access this screen');
+                return;
+            }
+            
             let fetchedOrders: Order[] = [];
             
-            if (user.userType === 'cook') {
-                // Load cook orders
-                if (activeTab === 'active') {
-                    fetchedOrders = await getActiveCookOrders(user.uid);
-                } else {
-                    fetchedOrders = await getCookOrders(user.uid);
-                }
-                
-                // Filter based on active tab
-                filterCookOrders(fetchedOrders, activeTab);
+            if (activeTab === 'active') {
+                fetchedOrders = await getActiveCookOrders(user.uid);
             } else {
-                // Load customer orders
-                fetchedOrders = await getCustomerOrders(user.uid);
-                
-                // Sort by newest first
-                fetchedOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-                setFilteredOrders(fetchedOrders);
+                fetchedOrders = await getCookOrders(user.uid);
             }
             
             setOrders(fetchedOrders);
+            filterOrders(fetchedOrders, activeTab);
         } catch (error) {
             console.error('Error loading orders:', error);
-            Alert.alert('Error', 'Failed to load your orders. Please try again.');
+            Alert.alert('Error', 'Failed to load orders. Please try again.');
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
-    // Filter orders for cook based on active tab
-    const filterCookOrders = (orderList: Order[], tab: OrderTab) => {
+    // Filter orders based on active tab
+    const filterOrders = (orderList: Order[], tab: OrderTab) => {
         let filtered: Order[] = [];
         
         switch (tab) {
@@ -115,11 +108,9 @@ export default function OrdersScreen() {
         loadOrders();
     }, [user]);
 
-    // Handle tab change for cook
+    // Handle tab change
     useEffect(() => {
-        if (user?.userType === 'cook') {
-            filterCookOrders(orders, activeTab);
-        }
+        filterOrders(orders, activeTab);
     }, [activeTab]);
 
     // Refresh handler
@@ -160,11 +151,11 @@ export default function OrdersScreen() {
         }
     };
 
-    // For cooks: Update order status
+    // Update order status
     const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
         try {
-            if (!user || user.userType !== 'cook') {
-                Alert.alert('Error', 'Only cooks can update order status');
+            if (!user) {
+                Alert.alert('Error', 'You must be logged in to update orders');
                 return;
             }
             
@@ -180,7 +171,7 @@ export default function OrdersScreen() {
             );
             
             setOrders(updatedOrders);
-            filterCookOrders(updatedOrders, activeTab);
+            filterOrders(updatedOrders, activeTab);
             
             Alert.alert('Success', `Order status updated to ${formatStatus(status)}`);
         } catch (error) {
@@ -191,7 +182,7 @@ export default function OrdersScreen() {
         }
     };
 
-    // For cooks: Get next status options based on current status
+    // Get next status options based on current status
     const getNextStatusOptions = (currentStatus: OrderStatus): OrderStatus[] => {
         switch (currentStatus) {
             case 'new':
@@ -211,10 +202,8 @@ export default function OrdersScreen() {
         }
     };
 
-    // For cooks: Show status update options
+    // Show status update options
     const showStatusOptions = (order: Order) => {
-        if (user?.userType !== 'cook') return;
-        
         const nextOptions = getNextStatusOptions(order.status as OrderStatus);
         
         if (nextOptions.length === 0) return;
@@ -225,7 +214,10 @@ export default function OrdersScreen() {
             style: status === 'cancelled' ? 'destructive' : 'default'
         }));
         
-        buttons.push({ text: 'Cancel', style: 'cancel' });
+        buttons.push({
+            text: 'Cancel', style: 'cancel',
+            onPress: undefined
+        });
         
         Alert.alert(
             'Update Order Status',
@@ -234,95 +226,8 @@ export default function OrdersScreen() {
         );
     };
 
-    // For customers: Cancel order
-    const handleCancelOrder = async (orderId: string) => {
-        if (user?.userType !== 'customer') return;
-        
-        Alert.alert(
-            'Cancel Order',
-            'Are you sure you want to cancel this order?',
-            [
-                { text: 'No', style: 'cancel' },
-                {
-                    text: 'Yes, Cancel',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            if (user) {
-                                await updateOrderStatus(user, orderId, 'cancelled');
-                                // Update local state
-                                const updatedOrders = orders.map(order =>
-                                    order.id === orderId ? { ...order, status: 'cancelled' } : order
-                                );
-                                setOrders(updatedOrders);
-                                setFilteredOrders(updatedOrders);
-                                Alert.alert('Success', 'Order cancelled successfully');
-                            }
-                        } catch (error) {
-                            console.error('Error cancelling order:', error);
-                            Alert.alert('Error', 'Failed to cancel order. Please try again.');
-                        }
-                    },
-                },
-            ]
-        );
-    };
-
-    // Render cook's tab selector
-    const renderCookTabSelector = () => (
-        <View style={styles.tabContainer}>
-            <TouchableOpacity
-                style={[styles.tab, activeTab === 'active' && styles.activeTab]}
-                onPress={() => setActiveTab('active')}
-            >
-                <Ionicons
-                    name="timer-outline"
-                    size={20}
-                    color={activeTab === 'active' ? '#fff' : COLORS.primary}
-                />
-                <ThemedText
-                    style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}
-                >
-                    Active
-                </ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-                style={[styles.tab, activeTab === 'all' && styles.activeTab]}
-                onPress={() => setActiveTab('all')}
-            >
-                <Ionicons
-                    name="list-outline"
-                    size={20}
-                    color={activeTab === 'all' ? '#fff' : COLORS.primary}
-                />
-                <ThemedText
-                    style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}
-                >
-                    All
-                </ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-                style={[styles.tab, activeTab === 'history' && styles.activeTab]}
-                onPress={() => setActiveTab('history')}
-            >
-                <Ionicons
-                    name="time-outline"
-                    size={20}
-                    color={activeTab === 'history' ? '#fff' : COLORS.primary}
-                />
-                <ThemedText
-                    style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}
-                >
-                    History
-                </ThemedText>
-            </TouchableOpacity>
-        </View>
-    );
-
-    // Render cook's order item
-    const renderCookOrderItem = ({ item }: { item: Order }) => {
+    // Render order item
+    const renderOrderItem = ({ item }: { item: Order }) => {
         const canUpdateStatus = !['completed', 'cancelled'].includes(item.status);
         const isUpdating = updatingOrderId === item.id;
         
@@ -403,99 +308,81 @@ export default function OrdersScreen() {
         );
     };
 
-    // Render customer's order item
-    const renderCustomerOrderItem = ({ item }: { item: Order }) => {
-        const canCancel = ['new', 'confirmed'].includes(item.status);
-
-        return (
+    // Render tab selector
+    const renderTabSelector = () => (
+        <View style={styles.tabContainer}>
             <TouchableOpacity
-                style={styles.orderCard}
-                onPress={() => router.push(`/order/${item.id}`)}
+                style={[styles.tab, activeTab === 'active' && styles.activeTab]}
+                onPress={() => setActiveTab('active')}
             >
-                <View style={styles.orderHeader}>
-                    <View>
-                        <ThemedText style={styles.orderDate}>
-                            {format(item.createdAt, 'MMM d, yyyy · h:mm a')}
-                        </ThemedText>
-                        <View style={styles.orderStatusContainer}>
-                            <View
-                                style={[
-                                    styles.statusDot,
-                                    { backgroundColor: getStatusColor(item.status) },
-                                ]}
-                            />
-                            <ThemedText style={styles.orderStatus}>
-                                {formatStatus(item.status)}
-                            </ThemedText>
-                        </View>
-                    </View>
-                    <ThemedText type="defaultSemiBold" style={styles.orderPrice}>
-                        ${item.totalAmount.toFixed(2)}
-                    </ThemedText>
-                </View>
-
-                <View style={styles.orderContent}>
-                    <Image
-                        source={{ uri: item.mealImageUrl || '/api/placeholder/100/100' }}
-                        style={styles.mealImage}
-                        defaultSource={require('@/assets/images/placeholder-meal.png')}
-                    />
-                    <View style={styles.orderDetails}>
-                        <ThemedText type="defaultSemiBold" style={styles.mealName}>
-                            {item.mealName}
-                        </ThemedText>
-                        <ThemedText style={styles.orderQuantity}>
-                            Quantity: {item.quantity}
-                        </ThemedText>
-                        <ThemedText style={styles.cookName}>
-                            Cook: {item.cookName}
-                        </ThemedText>
-                    </View>
-                </View>
-
-                <View style={styles.orderFooter}>
-                    {canCancel && (
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={() => handleCancelOrder(item.id)}
-                        >
-                            <Ionicons name="close-circle-outline" size={16} color={COLORS.error} />
-                            <ThemedText style={styles.cancelButtonText}>Cancel Order</ThemedText>
-                        </TouchableOpacity>
-                    )}
-                    <TouchableOpacity style={styles.detailsButton}>
-                        <ThemedText style={styles.detailsButtonText}>View Details</ThemedText>
-                        <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
-                    </TouchableOpacity>
-                </View>
+                <Ionicons
+                    name="timer-outline"
+                    size={20}
+                    color={activeTab === 'active' ? '#fff' : COLORS.primary}
+                />
+                <ThemedText
+                    style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}
+                >
+                    Active
+                </ThemedText>
             </TouchableOpacity>
-        );
-    };
+            
+            <TouchableOpacity
+                style={[styles.tab, activeTab === 'all' && styles.activeTab]}
+                onPress={() => setActiveTab('all')}
+            >
+                <Ionicons
+                    name="list-outline"
+                    size={20}
+                    color={activeTab === 'all' ? '#fff' : COLORS.primary}
+                />
+                <ThemedText
+                    style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}
+                >
+                    All
+                </ThemedText>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+                style={[styles.tab, activeTab === 'history' && styles.activeTab]}
+                onPress={() => setActiveTab('history')}
+            >
+                <Ionicons
+                    name="time-outline"
+                    size={20}
+                    color={activeTab === 'history' ? '#fff' : COLORS.primary}
+                />
+                <ThemedText
+                    style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}
+                >
+                    History
+                </ThemedText>
+            </TouchableOpacity>
+        </View>
+    );
 
     // Empty list message
     const renderEmptyList = () => {
         if (loading) return null;
 
-        const emptyMessage = user?.userType === 'cook' 
-            ? (activeTab === 'active'
-                ? 'No active orders at the moment'
-                : activeTab === 'history'
-                ? 'No order history yet'
-                : 'No orders yet')
-            : 'You haven\'t placed any orders yet';
-
         return (
             <View style={styles.emptyContainer}>
                 <Ionicons name="receipt-outline" size={64} color={COLORS.gray} />
                 <ThemedText style={styles.emptyText}>
-                    {emptyMessage}
+                    {activeTab === 'active'
+                        ? 'No active orders at the moment'
+                        : activeTab === 'history'
+                        ? 'No order history yet'
+                        : 'No orders yet'}
                 </ThemedText>
-                {user?.userType === 'customer' && (
+                {activeTab !== 'active' && (
                     <TouchableOpacity
-                        style={styles.browseButton}
-                        onPress={() => router.push('/browse')}
+                        style={styles.switchButton}
+                        onPress={() => setActiveTab('active')}
                     >
-                        <ThemedText style={styles.browseButtonText}>Browse Meals</ThemedText>
+                        <ThemedText style={styles.switchButtonText}>
+                            Switch to Active Orders
+                        </ThemedText>
                     </TouchableOpacity>
                 )}
             </View>
@@ -504,13 +391,10 @@ export default function OrdersScreen() {
 
     return (
         <ThemedView style={styles.container}>
-            <Stack.Screen options={{ 
-                title: user?.userType === 'cook' ? 'Manage Orders' : 'My Orders', 
-                headerShown: true 
-            }} />
+            <Stack.Screen options={{ title: 'Orders', headerShown: true }} />
             
-            {/* Cook-specific tab selector */}
-            {user?.userType === 'cook' && renderCookTabSelector()}
+            {/* Tab selector */}
+            {renderTabSelector()}
 
             {loading && !refreshing ? (
                 <View style={styles.loadingContainer}>
@@ -519,7 +403,7 @@ export default function OrdersScreen() {
             ) : (
                 <FlatList
                     data={filteredOrders}
-                    renderItem={user?.userType === 'cook' ? renderCookOrderItem : renderCustomerOrderItem}
+                    renderItem={renderOrderItem}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={renderEmptyList}
@@ -576,7 +460,6 @@ const styles = StyleSheet.create({
     listContent: {
         padding: 16,
         paddingBottom: 80,
-        flexGrow: 1,
     },
     orderCard: {
         backgroundColor: '#fff',
@@ -649,10 +532,6 @@ const styles = StyleSheet.create({
         color: '#666',
         marginBottom: 4,
     },
-    cookName: {
-        fontSize: 14,
-        color: '#666',
-    },
     deliveryMethod: {
         fontSize: 14,
         color: '#666',
@@ -671,15 +550,6 @@ const styles = StyleSheet.create({
     updateStatusText: {
         fontSize: 14,
         color: COLORS.primary,
-        marginLeft: 4,
-    },
-    cancelButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    cancelButtonText: {
-        fontSize: 14,
-        color: COLORS.error,
         marginLeft: 4,
     },
     detailsButton: {
@@ -703,13 +573,13 @@ const styles = StyleSheet.create({
         color: '#777',
         marginBottom: 24,
     },
-    browseButton: {
+    switchButton: {
         backgroundColor: COLORS.primary,
         paddingVertical: 12,
         paddingHorizontal: 24,
         borderRadius: 8,
     },
-    browseButtonText: {
+    switchButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: '600',

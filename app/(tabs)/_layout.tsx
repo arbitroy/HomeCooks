@@ -1,13 +1,14 @@
+// app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Platform, View, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors, COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -29,37 +30,6 @@ export default function TabLayout() {
       </View>
     );
   }
-
-  // Determine which third tab to show based on user type
-  const ThirdTab = () => {
-    const isCook = user?.userType === 'cook';
-    
-    if (isCook) {
-      return (
-        <Tabs.Screen
-          name="cook/meals"
-          options={{
-            title: 'My Meals',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="restaurant-outline" size={28} color={color} />
-            ),
-          }}
-        />
-      );
-    } else {
-      return (
-        <Tabs.Screen
-          name="orders"
-          options={{
-            title: 'My Orders',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="receipt-outline" size={28} color={color} />
-            ),
-          }}
-        />
-      );
-    }
-  };
 
   return (
     <Tabs
@@ -94,8 +64,29 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Dynamically insert the third tab based on user type */}
-      {ThirdTab()}
+      {/* Conditional screen based on user type */}
+      {user?.userType === 'cook' ? (
+        <Tabs.Screen
+          name="cook/meals"
+          options={{
+            title: 'My Meals',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="restaurant-outline" size={28} color={color} />
+            ),
+          }}
+        />
+      ) : null}
+      
+      {/* Consolidated Orders Screen */}
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: 'Orders',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="receipt-outline" size={28} color={color} />
+          ),
+        }}
+      />
       
       <Tabs.Screen
         name="profile"
