@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// app/cook/dashboard.tsx
+import React, { ReactNode } from 'react';
 import {
     StyleSheet,
     View,
@@ -17,19 +18,300 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { Meal, getMealsByCook } from '@/app/services/meals';
 import { getCookProfile } from '@/app/services/cookProfile';
 import { getActiveCookOrders, getCookOrders } from '@/app/services/orders';
+import { User } from '@/app/services/auth';
 
 const windowWidth = Dimensions.get('window').width;
 
+// Interface for dashboard data
+interface DashboardData {
+    meals: Meal[];
+    activeMeals: number;
+    activeOrders: number;
+    totalOrders: number;
+    totalMeals: number;
+    profileComplete: boolean;
+}
+
+// Export the data loading function
+export async function loadDashboardData(user: User): Promise<DashboardData> {
+    // Load profile data
+    const profile = await getCookProfile(user.uid);
+    const profileComplete = !!profile && !!profile.bio && profile.cuisineTypes.length > 0;
+    
+    // Load meals
+    const cookMeals = await getMealsByCook(user.uid);
+    const totalMeals = cookMeals.length;
+    const activeMeals = cookMeals.filter(meal => meal.available).length;
+    
+    // Load orders
+    const activeOrdersData = await getActiveCookOrders(user.uid);
+    const allOrdersData = await getCookOrders(user.uid);
+    
+    const activeOrders = activeOrdersData.length;
+    const totalOrders = allOrdersData.length;
+
+    return {
+        meals: cookMeals,
+        activeMeals,
+        activeOrders,
+        totalOrders,
+        totalMeals,
+        profileComplete
+    };
+}
+
+// Export the render function
+export function renderCookDashboardContent(
+    data: DashboardData | null, 
+    user: User, 
+    router: ReturnType<typeof useRouter>
+): ReactNode {
+    if (!data) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <ThemedText style={styles.loadingText}>Loading your dashboard...</ThemedText>
+            </View>
+        );
+    }
+
+    // Navigate to add meal
+    const navigateToAddMeal = () => {
+        router.push('/cook/addMeal');
+    };
+
+    // Navigate to profile setup
+    const navigateToProfileSetup = () => {
+        router.push('/cook/profile-setup');
+    };
+
+    // Get popular meals (top 3 based on mock data - in a real app this would be based on order count)
+    const getPopularMeals = () => {
+        // For demo purposes, just return the first 3 meals or fewer if there aren't 3
+        return data.meals.slice(0, Math.min(3, data.meals.length));
+    };
+
+    return (
+        <>
+            {/* Profile Status */}
+            {!data.profileComplete && (
+                <View style={styles.alertCard}>
+                    <View style={styles.alertIconContainer}>
+                        <Ionicons name="alert-circle" size={24} color="#fff" />
+                    </View>
+                    <View style={styles.alertContent}>
+                        <ThemedText type="defaultSemiBold" style={styles.alertTitle}>
+                            Complete Your Profile
+                        </ThemedText>
+                        <ThemedText style={styles.alertText}>
+                            Set up your cook profile to attract more customers.
+                        </ThemedText>
+                        <TouchableOpacity
+                            style={styles.alertButton}
+                            onPress={navigateToProfileSetup}
+                        >
+                            <ThemedText style={styles.alertButtonText}>
+                                Set Up Profile
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
+            {/* Stats Section */}
+            <View style={styles.section}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                    Your Stats
+                </ThemedText>
+                
+                <View style={styles.statsContainer}>
+                    <View style={styles.statCard}>
+                        <ThemedText style={styles.statValue}>{data.totalMeals}</ThemedText>
+                        <ThemedText style={styles.statLabel}>Total Meals</ThemedText>
+                    </View>
+                    
+                    <View style={styles.statCard}>
+                        <ThemedText style={styles.statValue}>{data.activeMeals}</ThemedText>
+                        <ThemedText style={styles.statLabel}>Active Meals</ThemedText>
+                    </View>
+                    
+                    <View style={styles.statCard}>
+                        <ThemedText style={styles.statValue}>{data.activeOrders}</ThemedText>
+                        <ThemedText style={styles.statLabel}>Active Orders</ThemedText>
+                    </View>
+                    
+                    <View style={styles.statCard}>
+                        <ThemedText style={styles.statValue}>{data.totalOrders}</ThemedText>
+                        <ThemedText style={styles.statLabel}>Total Orders</ThemedText>
+                    </View>
+                </View>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={styles.section}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                    Quick Actions
+                </ThemedText>
+                
+                <View style={styles.actionCardsContainer}>
+                    <TouchableOpacity 
+                        style={styles.actionCard}
+                        onPress={navigateToAddMeal}
+                    >
+                        <View style={[styles.actionIconContainer, { backgroundColor: COLORS.primary }]}>
+                            <Ionicons name="restaurant-outline" size={24} color="#fff" />
+                        </View>
+                        <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
+                            Add New Meal
+                        </ThemedText>
+                        <ThemedText style={styles.actionDescription}>
+                            Create a new dish for your menu
+                        </ThemedText>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                        style={styles.actionCard}
+                        onPress={() => router.push('/order/[id]')}
+                    >
+                        <View style={[styles.actionIconContainer, { backgroundColor: COLORS.secondary }]}>
+                            <Ionicons name="list-outline" size={24} color="#fff" />
+                        </View>
+                        <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
+                            Manage Orders
+                        </ThemedText>
+                        <ThemedText style={styles.actionDescription}>
+                            View and update your orders
+                        </ThemedText>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                        style={styles.actionCard}
+                        onPress={() => router.push('/(tabs)/cook/meals')}
+                    >
+                        <View style={[styles.actionIconContainer, { backgroundColor: COLORS.tertiary }]}>
+                            <Ionicons name="grid-outline" size={24} color="#fff" />
+                        </View>
+                        <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
+                            Manage Menu
+                        </ThemedText>
+                        <ThemedText style={styles.actionDescription}>
+                            Edit or update your meals
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            {/* Popular Meals */}
+            <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                        Your Meals
+                    </ThemedText>
+                    <TouchableOpacity onPress={() => router.push('/(tabs)/cook/meals')}>
+                        <ThemedText style={styles.viewAllText}>View All</ThemedText>
+                    </TouchableOpacity>
+                </View>
+                
+                {data.meals.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <Ionicons name="restaurant-outline" size={48} color={COLORS.gray} />
+                        <ThemedText style={styles.emptyStateText}>
+                            You haven't added any meals yet
+                        </ThemedText>
+                        <TouchableOpacity
+                            style={styles.emptyStateButton}
+                            onPress={navigateToAddMeal}
+                        >
+                            <ThemedText style={styles.emptyStateButtonText}>
+                                Add Your First Meal
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View style={styles.popularMealsContainer}>
+                        {getPopularMeals().map((meal, index) => (
+                            <TouchableOpacity
+                                key={meal.id}
+                                style={styles.popularMealCard}
+                                onPress={() => router.push(`/meal/${meal.id}`)}
+                            >
+                                <View style={styles.popularMealContent}>
+                                    <ThemedText
+                                        type="defaultSemiBold"
+                                        style={styles.popularMealName}
+                                        numberOfLines={1}
+                                    >
+                                        {meal.name}
+                                    </ThemedText>
+                                    <ThemedText style={styles.popularMealPrice}>
+                                        ${meal.price.toFixed(2)}
+                                    </ThemedText>
+                                    <View style={styles.popularMealStatus}>
+                                        <View style={[
+                                            styles.statusDot,
+                                            { backgroundColor: meal.available ? COLORS.success : COLORS.gray }
+                                        ]} />
+                                        <ThemedText style={styles.statusText}>
+                                            {meal.available ? 'Available' : 'Unavailable'}
+                                        </ThemedText>
+                                    </View>
+                                </View>
+                                
+                                <View style={styles.popularMealActions}>
+                                    <TouchableOpacity
+                                        style={styles.popularMealAction}
+                                        onPress={() => router.push(`/cook/editMeal?id=${meal.id}`)}
+                                    >
+                                        <Ionicons name="create-outline" size={18} color={COLORS.primary} />
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity
+                                        style={styles.popularMealAction}
+                                        onPress={() => router.push(`/cook/editMeal?id=${meal.id}&toggleAvailability=true`)}
+                                    >
+                                        <Ionicons 
+                                            name={meal.available ? "eye-off-outline" : "eye-outline"} 
+                                            size={18} 
+                                            color={COLORS.primary} 
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                        
+                        <TouchableOpacity
+                            style={styles.viewAllMealsButton}
+                            onPress={() => router.push('/(tabs)/cook/meals')}
+                        >
+                            <ThemedText style={styles.viewAllMealsText}>
+                                View All Meals
+                            </ThemedText>
+                            <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+
+            {/* Add Meal Button */}
+            <TouchableOpacity
+                style={styles.addMealButton}
+                onPress={navigateToAddMeal}
+            >
+                <Ionicons name="add-circle-outline" size={24} color="#fff" />
+                <ThemedText style={styles.addMealButtonText}>
+                    Add New Meal
+                </ThemedText>
+            </TouchableOpacity>
+        </>
+    );
+}
+
+// Keep the original screen component for direct navigation
 export default function CookDashboardScreen() {
     const { user } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
-    const [meals, setMeals] = useState<Meal[]>([]);
-    const [activeMeals, setActiveMeals] = useState(0);
-    const [activeOrders, setActiveOrders] = useState(0);
-    const [totalOrders, setTotalOrders] = useState(0);
-    const [totalMeals, setTotalMeals] = useState(0);
-    const [profileComplete, setProfileComplete] = useState(false);
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
 
     // Load dashboard data
     useEffect(() => {
@@ -49,22 +331,8 @@ export default function CookDashboardScreen() {
                     return;
                 }
                 
-                // Load profile data
-                const profile = await getCookProfile(user.uid);
-                setProfileComplete(!!profile && !!profile.bio && profile.cuisineTypes.length > 0);
-                
-                // Load meals
-                const cookMeals = await getMealsByCook(user.uid);
-                setMeals(cookMeals);
-                setTotalMeals(cookMeals.length);
-                setActiveMeals(cookMeals.filter(meal => meal.available).length);
-                
-                // Load orders
-                const activeOrdersData = await getActiveCookOrders(user.uid);
-                const allOrdersData = await getCookOrders(user.uid);
-                
-                setActiveOrders(activeOrdersData.length);
-                setTotalOrders(allOrdersData.length);
+                const data = await loadDashboardData(user);
+                setDashboardData(data);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
                 Alert.alert('Error', 'Failed to load dashboard data');
@@ -76,32 +344,6 @@ export default function CookDashboardScreen() {
         loadData();
     }, [user]);
 
-    // Navigate to add meal
-    const navigateToAddMeal = () => {
-        router.push('/cook/addMeal');
-    };
-
-    // Navigate to profile setup
-    const navigateToProfileSetup = () => {
-        router.push('/cook/profile-setup');
-    };
-
-    // Get popular meals (top 3 based on mock data - in a real app this would be based on order count)
-    const getPopularMeals = () => {
-        // For demo purposes, just return the first 3 meals or fewer if there aren't 3
-        return meals.slice(0, Math.min(3, meals.length));
-    };
-
-    // Render loading state
-    if (loading) {
-        return (
-            <ThemedView style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-                <ThemedText style={styles.loadingText}>Loading your dashboard...</ThemedText>
-            </ThemedView>
-        );
-    }
-
     return (
         <ThemedView style={styles.container}>
             <Stack.Screen options={{ title: 'Cook Dashboard' }} />
@@ -110,215 +352,14 @@ export default function CookDashboardScreen() {
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
             >
-                {/* Profile Status */}
-                {!profileComplete && (
-                    <View style={styles.alertCard}>
-                        <View style={styles.alertIconContainer}>
-                            <Ionicons name="alert-circle" size={24} color="#fff" />
-                        </View>
-                        <View style={styles.alertContent}>
-                            <ThemedText type="defaultSemiBold" style={styles.alertTitle}>
-                                Complete Your Profile
-                            </ThemedText>
-                            <ThemedText style={styles.alertText}>
-                                Set up your cook profile to attract more customers.
-                            </ThemedText>
-                            <TouchableOpacity
-                                style={styles.alertButton}
-                                onPress={navigateToProfileSetup}
-                            >
-                                <ThemedText style={styles.alertButtonText}>
-                                    Set Up Profile
-                                </ThemedText>
-                            </TouchableOpacity>
-                        </View>
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                        <ThemedText style={styles.loadingText}>Loading your dashboard...</ThemedText>
                     </View>
+                ) : (
+                    renderCookDashboardContent(dashboardData, user!, router)
                 )}
-
-                {/* Stats Section */}
-                <View style={styles.section}>
-                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                        Your Stats
-                    </ThemedText>
-                    
-                    <View style={styles.statsContainer}>
-                        <View style={styles.statCard}>
-                            <ThemedText style={styles.statValue}>{totalMeals}</ThemedText>
-                            <ThemedText style={styles.statLabel}>Total Meals</ThemedText>
-                        </View>
-                        
-                        <View style={styles.statCard}>
-                            <ThemedText style={styles.statValue}>{activeMeals}</ThemedText>
-                            <ThemedText style={styles.statLabel}>Active Meals</ThemedText>
-                        </View>
-                        
-                        <View style={styles.statCard}>
-                            <ThemedText style={styles.statValue}>{activeOrders}</ThemedText>
-                            <ThemedText style={styles.statLabel}>Active Orders</ThemedText>
-                        </View>
-                        
-                        <View style={styles.statCard}>
-                            <ThemedText style={styles.statValue}>{totalOrders}</ThemedText>
-                            <ThemedText style={styles.statLabel}>Total Orders</ThemedText>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Quick Actions */}
-                <View style={styles.section}>
-                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                        Quick Actions
-                    </ThemedText>
-                    
-                    <View style={styles.actionCardsContainer}>
-                        <TouchableOpacity 
-                            style={styles.actionCard}
-                            onPress={navigateToAddMeal}
-                        >
-                            <View style={[styles.actionIconContainer, { backgroundColor: COLORS.primary }]}>
-                                <Ionicons name="restaurant-outline" size={24} color="#fff" />
-                            </View>
-                            <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
-                                Add New Meal
-                            </ThemedText>
-                            <ThemedText style={styles.actionDescription}>
-                                Create a new dish for your menu
-                            </ThemedText>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                            style={styles.actionCard}
-                            onPress={() => router.push('/cook/orders')}
-                        >
-                            <View style={[styles.actionIconContainer, { backgroundColor: COLORS.secondary }]}>
-                                <Ionicons name="list-outline" size={24} color="#fff" />
-                            </View>
-                            <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
-                                Manage Orders
-                            </ThemedText>
-                            <ThemedText style={styles.actionDescription}>
-                                View and update your orders
-                            </ThemedText>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                            style={styles.actionCard}
-                            onPress={() => router.push('/(tabs)/cook/meals')}
-                        >
-                            <View style={[styles.actionIconContainer, { backgroundColor: COLORS.tertiary }]}>
-                                <Ionicons name="grid-outline" size={24} color="#fff" />
-                            </View>
-                            <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
-                                Manage Menu
-                            </ThemedText>
-                            <ThemedText style={styles.actionDescription}>
-                                Edit or update your meals
-                            </ThemedText>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* Popular Meals */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                            Your Meals
-                        </ThemedText>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/cook/meals')}>
-                            <ThemedText style={styles.viewAllText}>View All</ThemedText>
-                        </TouchableOpacity>
-                    </View>
-                    
-                    {meals.length === 0 ? (
-                        <View style={styles.emptyState}>
-                            <Ionicons name="restaurant-outline" size={48} color={COLORS.gray} />
-                            <ThemedText style={styles.emptyStateText}>
-                                You haven't added any meals yet
-                            </ThemedText>
-                            <TouchableOpacity
-                                style={styles.emptyStateButton}
-                                onPress={navigateToAddMeal}
-                            >
-                                <ThemedText style={styles.emptyStateButtonText}>
-                                    Add Your First Meal
-                                </ThemedText>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View style={styles.popularMealsContainer}>
-                            {getPopularMeals().map((meal, index) => (
-                                <TouchableOpacity
-                                    key={meal.id}
-                                    style={styles.popularMealCard}
-                                    onPress={() => router.push(`/meal/${meal.id}`)}
-                                >
-                                    <View style={styles.popularMealContent}>
-                                        <ThemedText
-                                            type="defaultSemiBold"
-                                            style={styles.popularMealName}
-                                            numberOfLines={1}
-                                        >
-                                            {meal.name}
-                                        </ThemedText>
-                                        <ThemedText style={styles.popularMealPrice}>
-                                            ${meal.price.toFixed(2)}
-                                        </ThemedText>
-                                        <View style={styles.popularMealStatus}>
-                                            <View style={[
-                                                styles.statusDot,
-                                                { backgroundColor: meal.available ? COLORS.success : COLORS.gray }
-                                            ]} />
-                                            <ThemedText style={styles.statusText}>
-                                                {meal.available ? 'Available' : 'Unavailable'}
-                                            </ThemedText>
-                                        </View>
-                                    </View>
-                                    
-                                    <View style={styles.popularMealActions}>
-                                        <TouchableOpacity
-                                            style={styles.popularMealAction}
-                                            onPress={() => router.push(`/cook/editMeal?id=${meal.id}`)}
-                                        >
-                                            <Ionicons name="create-outline" size={18} color={COLORS.primary} />
-                                        </TouchableOpacity>
-                                        
-                                        <TouchableOpacity
-                                            style={styles.popularMealAction}
-                                            onPress={() => router.push(`/cook/editMeal?id=${meal.id}&toggleAvailability=true`)}
-                                        >
-                                            <Ionicons 
-                                                name={meal.available ? "eye-off-outline" : "eye-outline"} 
-                                                size={18} 
-                                                color={COLORS.primary} 
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                            
-                            <TouchableOpacity
-                                style={styles.viewAllMealsButton}
-                                onPress={() => router.push('/(tabs)/cook/meals')}
-                            >
-                                <ThemedText style={styles.viewAllMealsText}>
-                                    View All Meals
-                                </ThemedText>
-                                <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </View>
-
-                {/* Add Meal Button */}
-                <TouchableOpacity
-                    style={styles.addMealButton}
-                    onPress={navigateToAddMeal}
-                >
-                    <Ionicons name="add-circle-outline" size={24} color="#fff" />
-                    <ThemedText style={styles.addMealButtonText}>
-                        Add New Meal
-                    </ThemedText>
-                </TouchableOpacity>
             </ScrollView>
         </ThemedView>
     );
