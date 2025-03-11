@@ -86,6 +86,22 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 )}
 
+                {user?.userType === 'cook' && (
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => router.push('/cook/profile-setup')}
+                    >
+                        <Ionicons
+                            name="restaurant-outline"
+                            size={24}
+                            color={COLORS.primary}
+                            style={styles.menuIcon}
+                        />
+                        <ThemedText style={styles.menuText}>Cook Profile Setup</ThemedText>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                )}
+
                 <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}>
                     <Ionicons name="heart-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
                     <ThemedText style={styles.menuText}>Favorites</ThemedText>

@@ -225,7 +225,10 @@ export default function OrdersScreen() {
             style: status === 'cancelled' ? 'destructive' : 'default'
         }));
         
-        buttons.push({ text: 'Cancel', style: 'cancel' });
+        buttons.push({
+            text: 'Cancel', style: 'cancel',
+            onPress: undefined
+        });
         
         Alert.alert(
             'Update Order Status',

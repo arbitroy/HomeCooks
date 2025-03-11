@@ -19,18 +19,18 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { COLORS } from '@/constants/Colors';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { 
-    CookProfile, 
-    CookProfileInput, 
-    CUISINE_TYPES, 
-    getCookProfile, 
-    updateCookProfile 
+import {
+    CookProfile,
+    CookProfileInput,
+    CUISINE_TYPES,
+    getCookProfile,
+    updateCookProfile
 } from '@/app/services/cookProfile';
-import { 
-    getCurrentLocation, 
-    LocationCoordinates, 
-    getAddressFromCoordinates, 
-    requestLocationPermissions 
+import {
+    getCurrentLocation,
+    LocationCoordinates,
+    getAddressFromCoordinates,
+    requestLocationPermissions
 } from '@/app/services/location';
 
 // Days of the week for availability
@@ -48,20 +48,24 @@ const ProfileSchema = Yup.object().shape({
         .of(Yup.string())
         .min(1, 'Select at least one cuisine type'),
     deliveryAvailable: Yup.boolean(),
+    // Fix the conditional validation for deliveryRadius
     deliveryRadius: Yup.number()
         .when('deliveryAvailable', {
             is: true,
-            then: Yup.number()
+            then: () => Yup.number()
                 .required('Delivery radius is required')
                 .min(1, 'Minimum radius is 1 km')
-                .max(50, 'Maximum radius is 50 km')
+                .max(50, 'Maximum radius is 50 km'),
+            otherwise: () => Yup.number().notRequired()
         }),
+    // Fix the conditional validation for deliveryFee
     deliveryFee: Yup.number()
         .when('deliveryAvailable', {
             is: true,
-            then: Yup.number()
+            then: () => Yup.number()
                 .required('Delivery fee is required')
-                .min(0, 'Delivery fee cannot be negative')
+                .min(0, 'Delivery fee cannot be negative'),
+            otherwise: () => Yup.number().notRequired()
         }),
     minimumOrderAmount: Yup.number()
         .min(0, 'Minimum order amount cannot be negative')
@@ -82,25 +86,25 @@ export default function CookProfileSetupScreen() {
         const loadProfile = async () => {
             try {
                 setLoading(true);
-                
+
                 if (!user) {
                     Alert.alert('Error', 'You must be logged in to set up your profile');
                     router.replace('/auth/login');
                     return;
                 }
-                
+
                 if (user.userType !== 'cook') {
                     Alert.alert('Error', 'Only cooks can access this screen');
                     router.replace('/(tabs)');
                     return;
                 }
-                
+
                 // Try to load existing profile
                 const existingProfile = await getCookProfile(user.uid);
                 if (existingProfile) {
                     setProfile(existingProfile);
                 }
-                
+
                 // Get user location
                 await loadUserLocation();
             } catch (error) {
@@ -110,7 +114,7 @@ export default function CookProfileSetupScreen() {
                 setLoading(false);
             }
         };
-        
+
         loadProfile();
     }, [user]);
 
@@ -118,10 +122,10 @@ export default function CookProfileSetupScreen() {
     const loadUserLocation = async () => {
         try {
             setLocationLoading(true);
-            
+
             // Request location permissions
             const hasPermission = await requestLocationPermissions();
-            
+
             if (!hasPermission) {
                 Alert.alert(
                     'Location Permission Required',
@@ -129,13 +133,13 @@ export default function CookProfileSetupScreen() {
                 );
                 return;
             }
-            
+
             // Get current location
             const location = await getCurrentLocation();
-            
+
             if (location) {
                 setUserLocation(location);
-                
+
                 // Get address from coordinates
                 const address = await getAddressFromCoordinates(location);
                 if (address && address.formattedAddress) {
@@ -159,15 +163,30 @@ export default function CookProfileSetupScreen() {
             
             setSubmitting(true);
             
+            // Ensure all values are properly defined or have default values
+            // to avoid Firestore errors with undefined
             const profileInput: CookProfileInput = {
-                bio: values.bio,
+                bio: values.bio.trim(),
                 cuisineTypes: values.cuisineTypes,
-                deliveryAvailable: values.deliveryAvailable,
-                deliveryRadius: values.deliveryAvailable ? values.deliveryRadius : undefined,
-                deliveryFee: values.deliveryAvailable ? values.deliveryFee : undefined,
-                minimumOrderAmount: values.minimumOrderAmount || 0,
-                availableDays: values.availableDays || DAYS_OF_WEEK,
-                coordinates: userLocation
+                deliveryAvailable: Boolean(values.deliveryAvailable),
+                
+                // Only include delivery details if delivery is available
+                // Otherwise, use null (not undefined)
+                deliveryRadius: values.deliveryAvailable ? 
+                    (Number(values.deliveryRadius) || null) : null,
+                    
+                deliveryFee: values.deliveryAvailable ? 
+                    (Number(values.deliveryFee) || null) : null,
+                    
+                // Ensure we have a valid number or null for minimumOrderAmount
+                minimumOrderAmount: Number(values.minimumOrderAmount) || 0,
+                
+                // Ensure we have a valid array for availableDays
+                availableDays: Array.isArray(values.availableDays) ? 
+                    values.availableDays : DAYS_OF_WEEK,
+                    
+                // Add location if available
+                coordinates: userLocation || undefined
             };
             
             await updateCookProfile(user, profileInput);
@@ -178,7 +197,7 @@ export default function CookProfileSetupScreen() {
                 [
                     { 
                         text: 'OK', 
-                        onPress: () => router.replace('/(tabs)/cook/meals') 
+                        onPress: () => router.replace('/(tabs)/cook-dashboard') 
                     }
                 ]
             );
@@ -203,7 +222,7 @@ export default function CookProfileSetupScreen() {
                 availableDays: profile.availableDays || DAYS_OF_WEEK
             };
         }
-        
+
         return {
             bio: '',
             cuisineTypes: [],
@@ -227,7 +246,7 @@ export default function CookProfileSetupScreen() {
     return (
         <ThemedView style={styles.container}>
             <Stack.Screen options={{ title: 'Set Up Cook Profile' }} />
-            
+
             <Formik
                 initialValues={getInitialValues()}
                 validationSchema={ProfileSchema}
@@ -243,7 +262,7 @@ export default function CookProfileSetupScreen() {
                     errors,
                     touched
                 }) => (
-                    <ScrollView 
+                    <ScrollView
                         style={styles.scrollView}
                         contentContainerStyle={styles.scrollContent}
                     >
@@ -251,7 +270,7 @@ export default function CookProfileSetupScreen() {
                             <ThemedText type="subtitle" style={styles.sectionTitle}>
                                 About You
                             </ThemedText>
-                            
+
                             <View style={styles.inputContainer}>
                                 <ThemedText style={styles.label}>Bio</ThemedText>
                                 <TextInput
@@ -273,7 +292,7 @@ export default function CookProfileSetupScreen() {
                                 </ThemedText>
                             </View>
                         </View>
-                        
+
                         <View style={styles.sectionContainer}>
                             <ThemedText type="subtitle" style={styles.sectionTitle}>
                                 Cuisine Specialties
@@ -281,7 +300,7 @@ export default function CookProfileSetupScreen() {
                             <ThemedText style={styles.sectionDescription}>
                                 Select the cuisines you specialize in (at least one):
                             </ThemedText>
-                            
+
                             <View style={styles.cuisineGrid}>
                                 {CUISINE_TYPES.map((cuisine) => (
                                     <TouchableOpacity
@@ -316,17 +335,17 @@ export default function CookProfileSetupScreen() {
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                            
+
                             {touched.cuisineTypes && errors.cuisineTypes && (
                                 <ThemedText style={styles.errorText}>{errors.cuisineTypes}</ThemedText>
                             )}
                         </View>
-                        
+
                         <View style={styles.sectionContainer}>
                             <ThemedText type="subtitle" style={styles.sectionTitle}>
                                 Your Kitchen Location
                             </ThemedText>
-                            
+
                             <View style={styles.locationContainer}>
                                 <View style={styles.locationHeader}>
                                     <Ionicons name="location" size={24} color={COLORS.primary} />
@@ -334,7 +353,7 @@ export default function CookProfileSetupScreen() {
                                         Current Location
                                     </ThemedText>
                                 </View>
-                                
+
                                 {locationLoading ? (
                                     <View style={styles.locationLoading}>
                                         <ActivityIndicator size="small" color={COLORS.primary} />
@@ -374,12 +393,12 @@ export default function CookProfileSetupScreen() {
                                 )}
                             </View>
                         </View>
-                        
+
                         <View style={styles.sectionContainer}>
                             <ThemedText type="subtitle" style={styles.sectionTitle}>
                                 Delivery Options
                             </ThemedText>
-                            
+
                             <View style={styles.switchContainer}>
                                 <ThemedText style={styles.switchLabel}>
                                     Offer Delivery
@@ -391,7 +410,7 @@ export default function CookProfileSetupScreen() {
                                     thumbColor={Platform.OS === 'android' ? COLORS.primary : '#fff'}
                                 />
                             </View>
-                            
+
                             {values.deliveryAvailable && (
                                 <>
                                     <View style={styles.inputContainer}>
@@ -416,7 +435,7 @@ export default function CookProfileSetupScreen() {
                                             </ThemedText>
                                         )}
                                     </View>
-                                    
+
                                     <View style={styles.inputContainer}>
                                         <ThemedText style={styles.label}>
                                             Delivery Fee ($)
@@ -441,7 +460,7 @@ export default function CookProfileSetupScreen() {
                                     </View>
                                 </>
                             )}
-                            
+
                             <View style={styles.inputContainer}>
                                 <ThemedText style={styles.label}>
                                     Minimum Order Amount ($)
@@ -465,7 +484,7 @@ export default function CookProfileSetupScreen() {
                                 )}
                             </View>
                         </View>
-                        
+
                         <View style={styles.sectionContainer}>
                             <ThemedText type="subtitle" style={styles.sectionTitle}>
                                 Availability Days
@@ -473,7 +492,7 @@ export default function CookProfileSetupScreen() {
                             <ThemedText style={styles.sectionDescription}>
                                 Select days when you're available to cook:
                             </ThemedText>
-                            
+
                             <View style={styles.daysContainer}>
                                 {DAYS_OF_WEEK.map((day) => (
                                     <TouchableOpacity
@@ -507,7 +526,7 @@ export default function CookProfileSetupScreen() {
                                 ))}
                             </View>
                         </View>
-                        
+
                         <View style={styles.buttonContainer}>
                             <TouchableOpacity
                                 style={styles.saveButton}

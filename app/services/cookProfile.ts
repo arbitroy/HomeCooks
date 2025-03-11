@@ -115,17 +115,40 @@ export const updateCookProfile = async (
         const profileSnap = await getDoc(profileRef);
         const now = new Date();
 
+        // Create a clean data object - remove any undefined values
+        // Firestore doesn't accept undefined values
         let profileData: any = {
             uid: currentUser.uid,
             bio: profileInput.bio,
             cuisineTypes: profileInput.cuisineTypes,
             deliveryAvailable: profileInput.deliveryAvailable,
-            deliveryRadius: profileInput.deliveryRadius,
-            deliveryFee: profileInput.deliveryFee,
-            minimumOrderAmount: profileInput.minimumOrderAmount,
-            availableDays: profileInput.availableDays,
             updatedAt: serverTimestamp()
         };
+        
+        // Only add fields if they are defined and needed
+        if (profileInput.deliveryAvailable) {
+            if (profileInput.deliveryRadius !== undefined) {
+                profileData.deliveryRadius = profileInput.deliveryRadius;
+            }
+            
+            if (profileInput.deliveryFee !== undefined) {
+                profileData.deliveryFee = profileInput.deliveryFee;
+            }
+        } else {
+            // For non-delivery cooks, set these to null instead of undefined
+            // Firestore accepts null values but not undefined
+            profileData.deliveryRadius = null;
+            profileData.deliveryFee = null;
+        }
+        
+        // Add other optional fields only if defined
+        if (profileInput.minimumOrderAmount !== undefined) {
+            profileData.minimumOrderAmount = profileInput.minimumOrderAmount;
+        }
+        
+        if (profileInput.availableDays) {
+            profileData.availableDays = profileInput.availableDays;
+        }
 
         // Add location if provided
         if (profileInput.coordinates) {

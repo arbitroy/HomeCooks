@@ -1,6 +1,5 @@
-// app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Platform, View, ActivityIndicator } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
@@ -22,6 +21,20 @@ export default function TabLayout() {
     }
   }, [user]);
 
+  // Use useMemo to avoid recreating tab screens on every render
+  const screenOptions = useMemo(() => ({
+    tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+    headerShown: false,
+    tabBarButton: HapticTab,
+    tabBarBackground: TabBarBackground,
+    tabBarStyle: Platform.select({
+      ios: {
+        position: 'absolute',
+      },
+      default: {},
+    }),
+  }), [colorScheme]);
+
   // Don't render tabs until we know the user type
   if (!isInitialized) {
     return (
@@ -31,20 +44,11 @@ export default function TabLayout() {
     );
   }
 
+  // Determine whether to show cook-specific tabs
+  const isCook = user?.userType === 'cook';
+
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+    <Tabs screenOptions={screenOptions}>
       <Tabs.Screen
         name="index"
         options={{
@@ -54,6 +58,7 @@ export default function TabLayout() {
           ),
         }}
       />
+      
       <Tabs.Screen
         name="browse"
         options={{
@@ -64,8 +69,20 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Conditional screen based on user type */}
-      {user?.userType === 'cook' ? (
+      {/* Cook-specific tabs */}
+      {isCook && (
+        <Tabs.Screen
+          name="cook-dashboard"
+          options={{
+            title: 'Dashboard',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="grid-outline" size={28} color={color} />
+            ),
+          }}
+        />
+      )}
+      
+      {isCook && (
         <Tabs.Screen
           name="cook/meals"
           options={{
@@ -75,9 +92,8 @@ export default function TabLayout() {
             ),
           }}
         />
-      ) : null}
+      )}
       
-      {/* Consolidated Orders Screen */}
       <Tabs.Screen
         name="orders"
         options={{

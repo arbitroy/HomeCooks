@@ -11,6 +11,9 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './providers/ThemeProvider';
 import { COLORS } from '@/constants/Colors';
+import { doc, getDoc } from 'firebase/firestore';
+import { firestore } from './config/firebase';
+import { User } from './services/auth';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -47,8 +50,35 @@ export default function RootLayout() {
 // Authentication guard component to handle protected routes
 function AuthenticationGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const segments = useSegments();
+  const segments: string[] = useSegments();
   const router = useRouter();
+
+  async function checkCookProfileCompletion(user: User) {
+    if (user?.userType === 'cook') {
+      try {
+        const cookProfileRef = doc(firestore, 'cook_profiles', user.uid);
+        const cookProfileSnap = await getDoc(cookProfileRef);
+
+        // If profile doesn't exist or is incomplete
+        if (!cookProfileSnap.exists() ||
+          !cookProfileSnap.data().bio ||
+          !cookProfileSnap.data().cuisineTypes ||
+          cookProfileSnap.data().cuisineTypes.length === 0) {
+
+          // Check if user is already on profile setup page
+          const onProfileSetup = segments.includes('cook') && segments.includes('profile-setup');
+
+          // If not on profile setup page and not on the initial login flow, redirect
+          if (!onProfileSetup && segments[0] !== 'auth') {
+            router.replace('/cook/profile-setup');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking cook profile:', error);
+      }
+    }
+  }
 
   // This effect is used to redirect users based on their authentication status
   useEffect(() => {
@@ -59,12 +89,17 @@ function AuthenticationGuard({ children }: { children: React.ReactNode }) {
 
     // If user is logged in and tries to access auth screens, redirect to home
     if (user && inAuthGroup) {
-      router.replace('/(tabs)/');
+      router.replace('/(tabs)');
     }
 
     // If user is not logged in and tries to access protected screens, redirect to login
     else if (!user && !inAuthGroup) {
       router.replace('/auth/login');
+    }
+
+    // If logged in user is a cook, check profile completion
+    else if (user) {
+      checkCookProfileCompletion(user);
     }
   }, [user, loading, segments]);
 
