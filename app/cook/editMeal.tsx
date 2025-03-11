@@ -59,6 +59,19 @@ export default function EditMealScreen() {
     const [currentIngredient, setCurrentIngredient] = useState('');
     const [allergens, setAllergens] = useState<string[]>([]);
     const [currentAllergen, setCurrentAllergen] = useState('');
+    
+    // Protect route - redirect non-cook users
+    useEffect(() => {
+        if (user && user.userType !== 'cook') {
+            Alert.alert('Access Denied', 'Only cooks can edit meals');
+            router.replace('/(tabs)');
+        }
+    }, [user, router]);
+    
+    // If not a cook, show nothing (will be redirected)
+    if (user && user.userType !== 'cook') {
+        return null;
+    }
 
     // Load meal data
     useEffect(() => {
@@ -68,6 +81,13 @@ export default function EditMealScreen() {
                 const mealData = await getMealById(mealId);
 
                 if (mealData) {
+                    // Additional owner verification
+                    if (user?.uid !== mealData.cookId) {
+                        Alert.alert('Access Denied', 'You can only edit your own meals');
+                        router.back();
+                        return;
+                    }
+                    
                     setMeal(mealData);
                     setIngredients(mealData.ingredients);
                     setAllergens(mealData.allergens);
@@ -89,10 +109,10 @@ export default function EditMealScreen() {
             }
         };
 
-        if (mealId) {
+        if (mealId && user?.userType === 'cook') {
             loadMeal();
         }
-    }, [mealId, toggleAvailability]);
+    }, [mealId, toggleAvailability, user]);
 
     // Handle availability toggle
     const handleAvailabilityToggle = async (mealData: Meal) => {

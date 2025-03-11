@@ -1,5 +1,6 @@
+// app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, View, ActivityIndicator } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
@@ -11,18 +12,22 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { user } = useAuth();
-  const [isInitialized, setIsInitialized] = useState(false);
+  const { user, loading } = useAuth();
   
-  // Wait for authentication state to be determined
-  useEffect(() => {
-    if (user !== undefined) {
-      setIsInitialized(true);
-    }
-  }, [user]);
+  // Only render tabs once loading is complete AND we have user data
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
-  // Use useMemo to avoid recreating tab screens on every render
-  const screenOptions = useMemo(() => ({
+  // Directly check if the user is a cook - this is safer than using a state variable
+  const isCook = user?.userType === 'cook';
+
+  // Screen options with consistent style
+  const screenOptions = {
     tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
     headerShown: false,
     tabBarButton: HapticTab,
@@ -33,44 +38,33 @@ export default function TabLayout() {
       },
       default: {},
     }),
-  }), [colorScheme]);
+  };
 
-  // Don't render tabs until we know the user type
-  if (!isInitialized) {
+  // Return different tab configurations based on user type
+  if (isCook) {
+    // Cook-specific tabs
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
-  }
-
-  // Determine whether to show cook-specific tabs
-  const isCook = user?.userType === 'cook';
-
-  return (
-    <Tabs screenOptions={screenOptions}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="home-outline" size={28} color={color} />
-          ),
-        }}
-      />
-      
-      <Tabs.Screen
-        name="browse"
-        options={{
-          title: 'Browse',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="search-outline" size={28} color={color} />
-          ),
-        }}
-      />
-      
-      {/* Only include one dashboard tab for cooks */}
-      {isCook && (
+      <Tabs screenOptions={screenOptions}>
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="home-outline" size={28} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="browse"
+          options={{
+            title: 'Browse',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="search-outline" size={28} color={color} />
+            ),
+          }}
+        />
+        
         <Tabs.Screen
           name="cook-dashboard"
           options={{
@@ -80,10 +74,7 @@ export default function TabLayout() {
             ),
           }}
         />
-      )}
-      
-      {/* Only include meals tab for cooks */}
-      {isCook && (
+        
         <Tabs.Screen
           name="cook/meals"
           options={{
@@ -93,28 +84,72 @@ export default function TabLayout() {
             ),
           }}
         />
-      )}
-      
-      {/* One orders tab for all users */}
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: 'Orders',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="receipt-outline" size={28} color={color} />
-          ),
-        }}
-      />
-      
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="person-outline" size={28} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
-  );
+        
+        <Tabs.Screen
+          name="orders"
+          options={{
+            title: 'Orders',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="receipt-outline" size={28} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="person-outline" size={28} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    );
+  } else {
+    // Customer-specific tabs (no cook tabs)
+    return (
+      <Tabs screenOptions={screenOptions}>
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="home-outline" size={28} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="browse"
+          options={{
+            title: 'Browse',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="search-outline" size={28} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="orders"
+          options={{
+            title: 'Orders',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="receipt-outline" size={28} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="person-outline" size={28} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    );
+  }
 }

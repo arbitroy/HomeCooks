@@ -11,7 +11,7 @@ import {
     Platform,
     KeyboardAvoidingView
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Router, Stack, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -23,6 +23,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { MealInput, createMeal, MealAvailability } from '@/app/services/meals';
 import { Ionicons } from '@expo/vector-icons';
 import { CUISINE_TYPES } from '@/app/services/cookProfile';
+import { User } from '../services/auth';
 
 // Validation schema for meal creation
 const MealSchema = Yup.object().shape({
@@ -43,7 +44,7 @@ const MealSchema = Yup.object().shape({
     ingredients: Yup.array()
         .of(Yup.string())
         .min(1, 'At least one ingredient is required'),
-    allergens: Yup.array().of(Yup.string()),
+    allergens: Yup.array().of(Yup.string())
 });
 
 // Initial availability for all days
@@ -67,6 +68,19 @@ export default function AddMealScreen() {
     const [currentAllergen, setCurrentAllergen] = useState('');
     const [availabilitySchedule, setAvailabilitySchedule] = useState<MealAvailability>(initialAvailability);
     const scrollViewRef = React.useRef<KeyboardAwareScrollView>(null);
+    
+    // Protect route - redirect non-cook users
+    useEffect(() => {
+        if (user && user.userType !== 'cook') {
+            Alert.alert('Access Denied', 'Only cooks can add meals');
+            router.replace('/(tabs)');
+        }
+    }, [user, router]);
+    
+    // If not a cook, show nothing (will be redirected)
+    if (user && user.userType !== 'cook') {
+        return null;
+    }
 
     // Permission request for image picker
     const requestMediaLibraryPermission = async () => {
@@ -720,3 +734,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 });
+
+function useEffect(arg0: () => void, arg1: (User | Router | null)[]) {
+    throw new Error('Function not implemented.');
+}

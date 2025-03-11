@@ -1,4 +1,3 @@
-// app/(tabs)/profile.tsx
 import React from 'react';
 import { StyleSheet, View, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
@@ -11,6 +10,9 @@ import { useAuth } from '@/app/contexts/AuthContext';
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
     const router = useRouter();
+    
+    // Determine if user is a cook (safely with fallback)
+    const isCook = user?.userType === 'cook';
 
     const handleLogout = async () => {
         try {
@@ -79,7 +81,8 @@ export default function ProfileScreen() {
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
 
-                    {user?.userType === 'cook' && (
+                    {/* Only show cook-specific menu items for cooks */}
+                    {isCook && (
                         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cook/meals')}>
                             <Ionicons name="restaurant-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
                             <ThemedText style={styles.menuText}>My Meals</ThemedText>
@@ -87,13 +90,13 @@ export default function ProfileScreen() {
                         </TouchableOpacity>
                     )}
 
-                    {user?.userType === 'cook' && (
+                    {isCook && (
                         <TouchableOpacity
                             style={styles.menuItem}
                             onPress={() => router.push('/cook/profile-setup')}
                         >
                             <Ionicons
-                                name="restaurant-outline"
+                                name="person-outline"
                                 size={24}
                                 color={COLORS.primary}
                                 style={styles.menuIcon}
