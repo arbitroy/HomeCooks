@@ -1,6 +1,6 @@
-// app/(tabs)/_layout.tsx
+
 import { Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Platform, View, ActivityIndicator } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
@@ -40,9 +40,8 @@ export default function TabLayout() {
     }),
   };
 
-  // Return different tab configurations based on user type
+
   if (isCook) {
-    // Cook-specific tabs
     return (
       <Tabs screenOptions={screenOptions}>
         <Tabs.Screen
@@ -61,16 +60,6 @@ export default function TabLayout() {
             title: 'Browse',
             tabBarIcon: ({ color }) => (
               <Ionicons name="search-outline" size={28} color={color} />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
-          name="cook-dashboard"
-          options={{
-            title: 'Dashboard',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="grid-outline" size={28} color={color} />
             ),
           }}
         />
@@ -107,7 +96,7 @@ export default function TabLayout() {
       </Tabs>
     );
   } else {
-    // Customer-specific tabs (no cook tabs)
+    // Customer-specific tabs (unchanged)
     return (
       <Tabs screenOptions={screenOptions}>
         <Tabs.Screen

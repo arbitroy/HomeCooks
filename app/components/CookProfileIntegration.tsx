@@ -141,3 +141,12 @@ const styles = StyleSheet.create({
         marginHorizontal: 12,
     },
 });
+
+// Add a default export combining both components
+const CookProfileIntegration = {
+    ProfileSetupButton,
+    ProfileIncompleteAlert,
+    useCookProfileStatus
+};
+
+export default CookProfileIntegration;

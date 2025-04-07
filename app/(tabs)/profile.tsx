@@ -75,6 +75,18 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={styles.menuContainer}>
+                    {/* Dashboard menu item for cooks - prominently displayed at the top */}
+                    {isCook && (
+                        <TouchableOpacity 
+                            style={[styles.menuItem, styles.dashboardMenuItem]} 
+                            onPress={() => router.push('/cook/dashboard')}
+                        >
+                            <Ionicons name="grid-outline" size={24} color="#fff" style={styles.dashboardMenuIcon} />
+                            <ThemedText style={styles.dashboardMenuText}>Cook Dashboard</ThemedText>
+                            <Ionicons name="chevron-forward" size={20} color="#fff" />
+                        </TouchableOpacity>
+                    )}
+
                     <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/orders')}>
                         <Ionicons name="receipt-outline" size={24} color={COLORS.primary} style={styles.menuIcon} />
                         <ThemedText style={styles.menuText}>My Orders</ThemedText>
@@ -206,12 +218,34 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
+    // Special styling for dashboard menu item to make it stand out
+    dashboardMenuItem: {
+        backgroundColor: COLORS.primary,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        borderBottomWidth: 0,
+    },
     menuIcon: {
+        marginRight: 16,
+    },
+    dashboardMenuIcon: {
         marginRight: 16,
     },
     menuText: {
         flex: 1,
         fontSize: 16,
+    },
+    dashboardMenuText: {
+        flex: 1,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#fff',
     },
     logoutButton: {
         flexDirection: 'row',

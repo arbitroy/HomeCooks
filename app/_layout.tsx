@@ -1,3 +1,5 @@
+// app/_layout.tsx (Update existing root layout to handle redirects)
+
 import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -86,6 +88,16 @@ function AuthenticationGuard({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     const inAuthGroup = segments[0] === 'auth';
+
+    // Handle redirect for the old cook-dashboard tab (if anyone tries to access it directly)
+    if (segments.length >= 2 && segments[0] === '(tabs)' && segments[1] === 'cook-dashboard') {
+      if (user?.userType === 'cook') {
+        router.replace('/cook/dashboard');
+      } else {
+        router.replace('/(tabs)');
+      }
+      return;
+    }
 
     // If user is logged in and tries to access auth screens, redirect to home
     if (user && inAuthGroup) {

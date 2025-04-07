@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Image, StyleSheet, Platform, ScrollView, View, TouchableOpacity } from 'react-native';
+import { Image, StyleSheet, Platform, ScrollView, View, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { HelloWave } from '@/components/HelloWave';
@@ -10,6 +10,8 @@ import { COLORS } from '@/constants/Colors';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { getTopRatedCooks, CookProfile } from '@/app/services/cookProfile';
 import { getAvailableMeals, Meal } from '@/app/services/meals';
+
+const screenWidth = Dimensions.get('window').width;
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -43,8 +45,8 @@ export default function HomeScreen() {
       headerBackgroundColor={{ light: COLORS.primary, dark: '#1D3D47' }}
       headerImage={
         <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+          source={require('@/assets/images/header_pattern.png')}
+          style={styles.fullReactLogo}
         />
       }>
       <ThemedView style={styles.titleContainer}>
@@ -159,6 +161,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  fullReactLogo: {
+    width: screenWidth * 0.6, // Make the logo 60% of screen width
+    height: screenWidth * 0.6, // Keep aspect ratio square
+    position: 'absolute',
+    bottom: 10,
   },
   sectionContainer: {
     marginBottom: 24,
