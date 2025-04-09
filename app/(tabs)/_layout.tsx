@@ -1,4 +1,3 @@
-
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, View, ActivityIndicator } from 'react-native';
@@ -40,105 +39,48 @@ export default function TabLayout() {
     }),
   };
 
-
-  if (isCook) {
-    return (
-      <Tabs screenOptions={screenOptions}>
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="home-outline" size={28} color={color} />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
-          name="browse"
-          options={{
-            title: 'Browse',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="search-outline" size={28} color={color} />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
-          name="cook/meals"
-          options={{
-            title: 'My Meals',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="restaurant-outline" size={28} color={color} />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
-          name="orders"
-          options={{
-            title: 'Orders',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="receipt-outline" size={28} color={color} />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="person-outline" size={28} color={color} />
-            ),
-          }}
-        />
-      </Tabs>
-    );
-  } else {
-    // Customer-specific tabs (unchanged)
-    return (
-      <Tabs screenOptions={screenOptions}>
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="home-outline" size={28} color={color} />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
-          name="browse"
-          options={{
-            title: 'Browse',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="search-outline" size={28} color={color} />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
-          name="orders"
-          options={{
-            title: 'Orders',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="receipt-outline" size={28} color={color} />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="person-outline" size={28} color={color} />
-            ),
-          }}
-        />
-      </Tabs>
-    );
-  }
+  // Return same tab configuration for both user types, with no cook-specific tabs
+  return (
+    <Tabs screenOptions={screenOptions}>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="home-outline" size={28} color={color} />
+          ),
+        }}
+      />
+      
+      <Tabs.Screen
+        name="browse"
+        options={{
+          title: 'Browse',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="search-outline" size={28} color={color} />
+          ),
+        }}
+      />
+      
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: 'Orders',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="receipt-outline" size={28} color={color} />
+          ),
+        }}
+      />
+      
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="person-outline" size={28} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
+  );
 }

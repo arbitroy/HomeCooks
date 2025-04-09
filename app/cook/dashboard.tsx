@@ -291,17 +291,6 @@ export function renderCookDashboardContent(
                     </View>
                 )}
             </View>
-
-            {/* Add Meal Button */}
-            <TouchableOpacity
-                style={styles.addMealButton}
-                onPress={navigateToAddMeal}
-            >
-                <Ionicons name="add-circle-outline" size={24} color="#fff" />
-                <ThemedText style={styles.addMealButtonText}>
-                    Add New Meal
-                </ThemedText>
-            </TouchableOpacity>
         </>
     );
 }

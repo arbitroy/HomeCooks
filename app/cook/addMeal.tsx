@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     View,
@@ -8,10 +8,9 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
-    Platform,
-    KeyboardAvoidingView
+    Platform
 } from 'react-native';
-import { Router, Stack, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -77,11 +76,6 @@ export default function AddMealScreen() {
         }
     }, [user, router]);
     
-    // If not a cook, show nothing (will be redirected)
-    if (user && user.userType !== 'cook') {
-        return null;
-    }
-
     // Permission request for image picker
     const requestMediaLibraryPermission = async () => {
         if (Platform.OS !== 'web') {
@@ -104,7 +98,7 @@ export default function AddMealScreen() {
         if (!hasPermission) return;
 
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images', 'videos'],
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [4, 3],
             quality: 1,
@@ -734,7 +728,3 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 });
-
-function useEffect(arg0: () => void, arg1: (User | Router | null)[]) {
-    throw new Error('Function not implemented.');
-}
