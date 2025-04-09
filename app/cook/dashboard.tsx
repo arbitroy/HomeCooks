@@ -186,7 +186,7 @@ export function renderCookDashboardContent(
                     
                     <TouchableOpacity 
                         style={styles.actionCard}
-                        onPress={() => router.push('/(tabs)/cook/meals')}
+                        onPress={() => router.push('/cook/meals')}
                     >
                         <View style={[styles.actionIconContainer, { backgroundColor: COLORS.tertiary }]}>
                             <Ionicons name="grid-outline" size={24} color="#fff" />
@@ -207,7 +207,7 @@ export function renderCookDashboardContent(
                     <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
                         Your Meals
                     </ThemedText>
-                    <TouchableOpacity onPress={() => router.push('/(tabs)/cook/meals')}>
+                    <TouchableOpacity onPress={() => router.push('/cook/meals')}>
                         <ThemedText style={styles.viewAllText}>View All</ThemedText>
                     </TouchableOpacity>
                 </View>
@@ -281,7 +281,7 @@ export function renderCookDashboardContent(
                         
                         <TouchableOpacity
                             style={styles.viewAllMealsButton}
-                            onPress={() => router.push('/(tabs)/cook/meals')}
+                            onPress={() => router.push('/cook/meals')}
                         >
                             <ThemedText style={styles.viewAllMealsText}>
                                 View All Meals
