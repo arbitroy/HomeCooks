@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Image, StyleSheet, Platform, ScrollView, View, TouchableOpacity, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { 
+  StyleSheet, 
+  View, 
+  ScrollView, 
+  TouchableOpacity, 
+  Image, 
+  Dimensions, 
+  StatusBar,
+  Platform
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { COLORS } from '@/constants/Colors';
@@ -15,6 +23,7 @@ const screenWidth = Dimensions.get('window').width;
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [topCooks, setTopCooks] = useState<CookProfile[]>([]);
   const [featuredMeals, setFeaturedMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,133 +49,199 @@ export default function HomeScreen() {
     fetchHomeScreenData();
   }, []);
 
+  const navigateToMeal = (mealId: string) => {
+    router.push(`/meal/${mealId}`);
+  };
+
+  const navigateToBrowse = () => {
+    router.push('/browse');
+  };
+
+  const navigateToNearbyCooks = () => {
+    router.push('/cook/discovery');
+  };
+
+  const navigateToAddMeal = () => {
+    router.push('/cook/addMeal');
+  };
+
+  const navigateToFavorites = () => {
+    router.push('/favorites');
+  };
+  
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: COLORS.primary, dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/header_pattern.png')}
-          style={styles.fullReactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome, {user?.displayName || 'Foodie'}!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-
-      {/* Top Rated Cooks Section */}
-      <ThemedView style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle">Top Rated Cooks</ThemedText>
-          <TouchableOpacity>
-            <ThemedText style={styles.seeAllText}>See All</ThemedText>
+    <ThemedView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      {/* Clean Modern Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View>
+            <ThemedText style={styles.welcomeText}>
+              Welcome,
+            </ThemedText>
+            <ThemedText style={styles.userName}>
+              {user?.displayName || 'Foodie'}! 👋
+            </ThemedText>
+          </View>
+          
+          <TouchableOpacity style={styles.notificationButton}>
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cookScrollContainer}
-        >
-          {topCooks.map((cook) => (
-            <TouchableOpacity key={cook.uid} style={styles.cookCard}>
-              <View style={styles.cookAvatar}>
-                <ThemedText style={styles.cookInitial}>
-                  {cook.uid.charAt(0).toUpperCase()}
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Top Rated Cooks Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="subtitle">Top Rated Cooks</ThemedText>
+            <TouchableOpacity>
+              <ThemedText style={styles.seeAllText}>See All</ThemedText>
+            </TouchableOpacity>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.cookScrollContainer}
+          >
+            {topCooks.map((cook) => (
+              <TouchableOpacity key={cook.uid} style={styles.cookCard}>
+                <View style={styles.cookAvatar}>
+                  <ThemedText style={styles.cookInitial}>
+                    {cook.uid.charAt(0).toUpperCase()}
+                  </ThemedText>
+                </View>
+                <ThemedText style={styles.cookName}>
+                  Chef {cook.uid.substring(0, 8)}
                 </ThemedText>
-              </View>
-              <ThemedText style={styles.cookName}>
-                Chef {cook.uid.substring(0, 8)}
-              </ThemedText>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <ThemedText style={styles.ratingText}>
-                  {cook.averageRating?.toFixed(1)}
-                </ThemedText>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </ThemedView>
-
-      {/* Featured Meals Section */}
-      <ThemedView style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle">Featured Meals</ThemedText>
-          <TouchableOpacity>
-            <ThemedText style={styles.seeAllText}>See All</ThemedText>
-          </TouchableOpacity>
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={16} color="#FFD700" />
+                  <ThemedText style={styles.ratingText}>
+                    {cook.averageRating?.toFixed(1)}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.mealScrollContainer}
-        >
-          {featuredMeals.map((meal) => (
-            <TouchableOpacity key={meal.id} style={styles.mealCard}>
-              <Image 
-                source={{ uri: meal.imageUrl || '/api/placeholder/200/200' }}
-                style={styles.mealImage}
-                defaultSource={require('@/assets/images/placeholder-meal.png')}
-              />
-              <ThemedText style={styles.mealName} numberOfLines={2}>
-                {meal.name}
-              </ThemedText>
-              <ThemedText style={styles.mealPrice}>
-                ${meal.price.toFixed(2)}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </ThemedView>
 
-      {/* Quick Actions */}
-      <ThemedView style={styles.quickActionsContainer}>
-        <ThemedText type="subtitle" style={styles.quickActionsTitle}>Quick Actions</ThemedText>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Ionicons name="search" size={24} color={COLORS.primary} />
-            <ThemedText style={styles.quickActionText}>Browse Meals</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Ionicons name="restaurant" size={24} color={COLORS.primary} />
-            <ThemedText style={styles.quickActionText}>Nearby Cooks</ThemedText>
-          </TouchableOpacity>
-          {user?.userType === 'cook' ? (
-            <TouchableOpacity style={styles.quickActionButton}>
-              <Ionicons name="add-circle" size={24} color={COLORS.primary} />
-              <ThemedText style={styles.quickActionText}>Add Meal</ThemedText>
+        {/* Featured Meals Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="subtitle">Featured Meals</ThemedText>
+            <TouchableOpacity>
+              <ThemedText style={styles.seeAllText}>See All</ThemedText>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.quickActionButton}>
-              <Ionicons name="heart" size={24} color={COLORS.primary} />
-              <ThemedText style={styles.quickActionText}>Favorites</ThemedText>
-            </TouchableOpacity>
-          )}
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.mealScrollContainer}
+          >
+            {featuredMeals.map((meal) => (
+              <TouchableOpacity 
+                key={meal.id} 
+                style={styles.mealCard}
+                onPress={() => navigateToMeal(meal.id)}
+              >
+                <Image 
+                  source={{ uri: meal.imageUrl || '/api/placeholder/200/200' }}
+                  style={styles.mealImage}
+                  defaultSource={require('@/assets/images/placeholder-meal.png')}
+                />
+                <View style={styles.mealOverlay}>
+                  <ThemedText style={styles.cuisineTag}>{meal.cuisineType}</ThemedText>
+                </View>
+                <View style={styles.mealCardContent}>
+                  <ThemedText style={styles.mealName} numberOfLines={1}>
+                    {meal.name}
+                  </ThemedText>
+                  <ThemedText style={styles.mealPrice}>
+                    ${meal.price.toFixed(2)}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
-      </ThemedView>
-    </ParallaxScrollView>
+
+        {/* Quick Actions */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.quickActionsTitle}>Quick Actions</ThemedText>
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity style={styles.quickActionButton} onPress={navigateToBrowse}>
+              <Ionicons name="search" size={24} color={COLORS.primary} />
+              <ThemedText style={styles.quickActionText}>Browse Meals</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickActionButton} onPress={navigateToNearbyCooks}>
+              <Ionicons name="restaurant" size={24} color={COLORS.primary} />
+              <ThemedText style={styles.quickActionText}>Nearby Cooks</ThemedText>
+            </TouchableOpacity>
+            {user?.userType === 'cook' ? (
+              <TouchableOpacity style={styles.quickActionButton} onPress={navigateToAddMeal}>
+                <Ionicons name="add-circle" size={24} color={COLORS.primary} />
+                <ThemedText style={styles.quickActionText}>Add Meal</ThemedText>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.quickActionButton} onPress={navigateToFavorites}>
+                <Ionicons name="heart" size={24} color={COLORS.primary} />
+                <ThemedText style={styles.quickActionText}>Favorites</ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 25,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.primary,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    height: 120, // Reduced since we removed the search bar
+  },
+  headerContent: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
     marginBottom: 16,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  welcomeText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '500',
   },
-  fullReactLogo: {
-    width: screenWidth * 0.6, // Make the logo 60% of screen width
-    height: screenWidth * 0.6, // Keep aspect ratio square
-    position: 'absolute',
-    bottom: 10,
+  userName: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  notificationButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 8,
+    borderRadius: 20,
+  },
+  
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingTop: 24,
   },
   sectionContainer: {
     marginBottom: 24,
@@ -175,7 +250,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
     marginBottom: 12,
   },
   seeAllText: {
@@ -183,15 +257,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cookScrollContainer: {
-    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   cookCard: {
     alignItems: 'center',
     marginRight: 16,
     width: 100,
     padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cookAvatar: {
     width: 60,
@@ -208,8 +287,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cookName: {
-    fontSize: 12,
+    fontSize: 14,
     marginBottom: 4,
+    textAlign: 'center',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -221,34 +301,51 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   mealScrollContainer: {
-    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   mealCard: {
-    width: 150,
+    width: 180,
     marginRight: 16,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   mealImage: {
     width: '100%',
-    height: 120,
+    height: 140,
     resizeMode: 'cover',
   },
+  mealOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  cuisineTag: {
+    backgroundColor: COLORS.primary,
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  mealCardContent: {
+    padding: 12,
+  },
   mealName: {
-    padding: 8,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   mealPrice: {
-    paddingHorizontal: 8,
-    paddingBottom: 8,
     color: COLORS.primary,
-    fontWeight: '600',
-  },
-  quickActionsContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    fontWeight: '700',
+    fontSize: 16,
   },
   quickActionsTitle: {
     marginBottom: 12,
@@ -261,14 +358,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 16,
     marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   quickActionText: {
     marginTop: 8,
     fontSize: 12,
-    color: COLORS.primary,
+    color: '#444',
+    textAlign: 'center',
   },
 });
