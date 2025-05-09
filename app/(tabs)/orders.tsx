@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     StyleSheet,
     View,
@@ -9,17 +9,17 @@ import {
     Alert,
     RefreshControl
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { COLORS } from '@/constants/Colors';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { 
-    Order, 
-    getCustomerOrders, 
-    getCookOrders, 
+import {
+    Order,
+    getCustomerOrders,
+    getCookOrders,
     getActiveCookOrders,
     updateOrderStatus,
     OrderStatus
@@ -42,33 +42,48 @@ export default function OrdersScreen() {
     const loadOrders = async () => {
         try {
             setLoading(true);
-            
+
             if (!user) {
                 Alert.alert('Error', 'You must be logged in to view orders');
                 return;
             }
-            
+
             let fetchedOrders: Order[] = [];
-            
+
             if (user.userType === 'cook') {
-                // Load cook orders
+                // For cooks, load different orders based on active tab
                 if (activeTab === 'active') {
                     fetchedOrders = await getActiveCookOrders(user.uid);
+                } else if (activeTab === 'history') {
+                    // For history tab, get all orders and filter for completed/cancelled
+                    const allOrders = await getCookOrders(user.uid);
+                    fetchedOrders = allOrders.filter(order =>
+                        ['completed', 'cancelled'].includes(order.status)
+                    );
                 } else {
+                    // 'all' tab
                     fetchedOrders = await getCookOrders(user.uid);
                 }
-                
-                // Filter based on active tab
-                filterCookOrders(fetchedOrders, activeTab);
+
+                // Sort orders based on the tab
+                if (activeTab === 'active' || activeTab === 'all') {
+                    // Sort newest first
+                    fetchedOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+                } else {
+                    // Sort history by newest first
+                    fetchedOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+                }
+
+                setFilteredOrders(fetchedOrders);
             } else {
-                // Load customer orders
+                // For customers, load all orders
                 fetchedOrders = await getCustomerOrders(user.uid);
-                
+
                 // Sort by newest first
                 fetchedOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
                 setFilteredOrders(fetchedOrders);
             }
-            
+
             setOrders(fetchedOrders);
         } catch (error) {
             console.error('Error loading orders:', error);
@@ -82,10 +97,10 @@ export default function OrdersScreen() {
     // Filter orders for cook based on active tab
     const filterCookOrders = (orderList: Order[], tab: OrderTab) => {
         let filtered: Order[] = [];
-        
+
         switch (tab) {
             case 'active':
-                filtered = orderList.filter(order => 
+                filtered = orderList.filter(order =>
                     !['completed', 'cancelled'].includes(order.status)
                 );
                 // Sort active orders by newest first
@@ -99,28 +114,25 @@ export default function OrdersScreen() {
                 break;
             case 'history':
                 // Completed and cancelled orders
-                filtered = orderList.filter(order => 
+                filtered = orderList.filter(order =>
                     ['completed', 'cancelled'].includes(order.status)
                 );
                 // Sort history by newest first
                 filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
                 break;
         }
-        
+
         setFilteredOrders(filtered);
     };
 
     // Initial load
-    useEffect(() => {
-        loadOrders();
-    }, [user]);
-
-    // Handle tab change for cook
-    useEffect(() => {
-        if (user?.userType === 'cook') {
-            filterCookOrders(orders, activeTab);
-        }
-    }, [activeTab]);
+    useFocusEffect(
+        useCallback(() => {
+            if (user) {
+                loadOrders();
+            }
+        }, [user, activeTab]) // Add activeTab to the dependency array
+    );
 
     // Refresh handler
     const handleRefresh = () => {
@@ -167,21 +179,21 @@ export default function OrdersScreen() {
                 Alert.alert('Error', 'Only cooks can update order status');
                 return;
             }
-            
+
             setUpdatingOrderId(orderId);
-            
+
             await updateOrderStatus(user, orderId, status);
-            
+
             // Update local state
-            const updatedOrders = orders.map(order => 
-                order.id === orderId 
-                    ? { ...order, status, updatedAt: new Date() } 
+            const updatedOrders = orders.map(order =>
+                order.id === orderId
+                    ? { ...order, status, updatedAt: new Date() }
                     : order
             );
-            
+
             setOrders(updatedOrders);
             filterCookOrders(updatedOrders, activeTab);
-            
+
             Alert.alert('Success', `Order status updated to ${formatStatus(status)}`);
         } catch (error) {
             console.error('Error updating order status:', error);
@@ -214,22 +226,22 @@ export default function OrdersScreen() {
     // For cooks: Show status update options
     const showStatusOptions = (order: Order) => {
         if (user?.userType !== 'cook') return;
-        
+
         const nextOptions = getNextStatusOptions(order.status as OrderStatus);
-        
+
         if (nextOptions.length === 0) return;
-        
+
         const buttons = nextOptions.map(status => ({
             text: formatStatus(status),
             onPress: () => handleUpdateStatus(order.id, status),
             style: status === 'cancelled' ? 'destructive' : 'default'
         }));
-        
+
         buttons.push({
             text: 'Cancel', style: 'cancel',
             onPress: undefined
         });
-        
+
         Alert.alert(
             'Update Order Status',
             `Current status: ${formatStatus(order.status)}`,
@@ -240,7 +252,7 @@ export default function OrdersScreen() {
     // For customers: Cancel order
     const handleCancelOrder = async (orderId: string) => {
         if (user?.userType !== 'customer') return;
-        
+
         Alert.alert(
             'Cancel Order',
             'Are you sure you want to cancel this order?',
@@ -289,7 +301,7 @@ export default function OrdersScreen() {
                     Active
                 </ThemedText>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
                 style={[styles.tab, activeTab === 'all' && styles.activeTab]}
                 onPress={() => setActiveTab('all')}
@@ -305,7 +317,7 @@ export default function OrdersScreen() {
                     All
                 </ThemedText>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
                 style={[styles.tab, activeTab === 'history' && styles.activeTab]}
                 onPress={() => setActiveTab('history')}
@@ -328,7 +340,7 @@ export default function OrdersScreen() {
     const renderCookOrderItem = ({ item }: { item: Order }) => {
         const canUpdateStatus = !['completed', 'cancelled'].includes(item.status);
         const isUpdating = updatingOrderId === item.id;
-        
+
         return (
             <TouchableOpacity
                 style={styles.orderCard}
@@ -396,7 +408,7 @@ export default function OrdersScreen() {
                             )}
                         </TouchableOpacity>
                     )}
-                    
+
                     <TouchableOpacity style={styles.detailsButton}>
                         <ThemedText style={styles.detailsButtonText}>View Details</ThemedText>
                         <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
@@ -479,12 +491,12 @@ export default function OrdersScreen() {
     const renderEmptyList = () => {
         if (loading) return null;
 
-        const emptyMessage = user?.userType === 'cook' 
+        const emptyMessage = user?.userType === 'cook'
             ? (activeTab === 'active'
                 ? 'No active orders at the moment'
                 : activeTab === 'history'
-                ? 'No order history yet'
-                : 'No orders yet')
+                    ? 'No order history yet'
+                    : 'No orders yet')
             : 'You haven\'t placed any orders yet';
 
         return (
@@ -507,11 +519,11 @@ export default function OrdersScreen() {
 
     return (
         <ThemedView style={styles.container}>
-            <Stack.Screen options={{ 
-                title: user?.userType === 'cook' ? 'Manage Orders' : 'My Orders', 
-                headerShown: true 
+            <Stack.Screen options={{
+                title: user?.userType === 'cook' ? 'Manage Orders' : 'My Orders',
+                headerShown: true
             }} />
-            
+
             {/* Cook-specific tab selector */}
             {user?.userType === 'cook' && renderCookTabSelector()}
 

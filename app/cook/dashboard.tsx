@@ -171,7 +171,7 @@ export function renderCookDashboardContent(
                     
                     <TouchableOpacity 
                         style={styles.actionCard}
-                        onPress={() => router.push('/order/[id]')}
+                        onPress={() => router.push('/(tabs)/orders')}
                     >
                         <View style={[styles.actionIconContainer, { backgroundColor: COLORS.secondary }]}>
                             <Ionicons name="list-outline" size={24} color="#fff" />
