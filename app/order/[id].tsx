@@ -375,7 +375,6 @@ const styles = StyleSheet.create({
     },
     orderDetailsContainer: {
         padding: 16,
-        backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
@@ -397,13 +396,12 @@ const styles = StyleSheet.create({
     },
     itemsContainer: {
         padding: 16,
-        backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
     orderItemCard: {
         flexDirection: 'row',
-        backgroundColor: '#f9f9f9',
+        backgroundColor: '#339A4A',
         borderRadius: 8,
         overflow: 'hidden',
     },
@@ -441,14 +439,12 @@ const styles = StyleSheet.create({
     },
     cookContainer: {
         padding: 16,
-        backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
     cookCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f9f9f9',
         padding: 12,
         borderRadius: 8,
     },
@@ -474,7 +470,6 @@ const styles = StyleSheet.create({
     },
     summaryContainer: {
         padding: 16,
-        backgroundColor: '#fff',
     },
     summaryRow: {
         flexDirection: 'row',
