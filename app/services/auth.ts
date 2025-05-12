@@ -12,11 +12,15 @@ import {
     doc,
     setDoc,
     getDoc,
-    serverTimestamp
+    serverTimestamp,
+    updateDoc,
 } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, firestore } from "../config/firebase";
 
 export type UserType = 'cook' | 'customer';
+
+const storage = getStorage();
 
 export interface User {
     uid: string;
@@ -163,6 +167,80 @@ export const signOut = async (): Promise<void> => {
     }
 };
 
+
+export const updateUserProfile = async (
+    currentUser: User,
+    profileData: { displayName?: string; photoURI?: string | null }
+): Promise<User> => {
+    try {
+        const { displayName, photoURI } = profileData;
+        const firebaseUser = auth.currentUser;
+
+        if (!firebaseUser) {
+            throw new Error('No user is currently signed in');
+        }
+
+        // Object to hold update data for Firebase Auth
+        const authUpdateData: { displayName?: string; photoURL?: string } = {};
+        
+        // Object to hold update data for Firestore
+        const firestoreUpdateData: { displayName?: string; photoURL?: string } = {};
+
+        // Process display name if provided
+        if (displayName) {
+            authUpdateData.displayName = displayName;
+            firestoreUpdateData.displayName = displayName;
+        }
+
+        // Process photo if provided
+        let photoURL = currentUser.photoURL;
+        if (photoURI) {
+            try {
+                // Upload the image to Firebase Storage
+                const imageRef = ref(storage, `profile_images/${currentUser.uid}`);
+                const response = await fetch(photoURI);
+                const blob = await response.blob();
+                
+                // Upload image
+                await uploadBytes(imageRef, blob);
+                
+                // Get download URL
+                photoURL = await getDownloadURL(imageRef);
+                
+                // Add to update objects
+                authUpdateData.photoURL = photoURL;
+                firestoreUpdateData.photoURL = photoURL;
+                
+                console.log("Photo upload successful");
+            } catch (storageError) {
+                console.error("Error uploading photo:", storageError);
+                // Continue with other updates even if photo upload fails
+            }
+        }
+
+        // Update Firebase Auth profile
+        if (Object.keys(authUpdateData).length > 0) {
+            await updateProfile(firebaseUser, authUpdateData);
+        }
+
+        // Update Firestore document
+        if (Object.keys(firestoreUpdateData).length > 0) {
+            const userRef = doc(firestore, 'users', currentUser.uid);
+            await updateDoc(userRef, firestoreUpdateData);
+        }
+
+        // Return updated user object
+        return {
+            ...currentUser,
+            displayName: displayName || currentUser.displayName,
+            photoURL: photoURL || currentUser.photoURL
+        };
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        throw error;
+    }
+};
+
 // Get current user data
 export const getCurrentUser = async (): Promise<User | null> => {
     const currentUser = auth.currentUser;
@@ -236,7 +314,8 @@ const AuthService = {
     signInWithGoogle,
     signOut,
     getCurrentUser,
-    onAuthStateChange
+    onAuthStateChange,
+    updateUserProfile
 };
 
 // Default export for Expo Router compatibility

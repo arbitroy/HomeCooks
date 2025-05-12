@@ -10,7 +10,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
     const router = useRouter();
-    
+
     // Determine if user is a cook (safely with fallback)
     const isCook = user?.userType === 'cook';
 
@@ -36,14 +36,13 @@ export default function ProfileScreen() {
     };
 
     const navigateToEditProfile = () => {
-        // This would navigate to a profile editing screen
-        Alert.alert('Coming Soon', 'Profile editing will be available in the next update.');
+        router.push('/profile/edit');
     };
 
     return (
         <ThemedView style={styles.container}>
             <Stack.Screen options={{ title: 'My Profile', headerShown: true }} />
-            
+
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
@@ -77,8 +76,8 @@ export default function ProfileScreen() {
                 <View style={styles.menuContainer}>
                     {/* Dashboard menu item for cooks - prominently displayed at the top */}
                     {isCook && (
-                        <TouchableOpacity 
-                            style={[styles.menuItem, styles.dashboardMenuItem]} 
+                        <TouchableOpacity
+                            style={[styles.menuItem, styles.dashboardMenuItem]}
                             onPress={() => router.push('/cook/dashboard')}
                         >
                             <Ionicons name="grid-outline" size={24} color="#fff" style={styles.dashboardMenuIcon} />

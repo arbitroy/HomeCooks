@@ -7,7 +7,8 @@ import {
     signInWithGoogle,
     signOut,
     getCurrentUser,
-    onAuthStateChange
+    onAuthStateChange,
+    updateUserProfile as updateUserProfileService
 } from '../services/auth';
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ interface AuthContextType {
     loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
     clearError: () => void;
+    updateUserProfile: (profileData: { displayName?: string; photoURI?: string | null }) => Promise<void>; // Add this
 }
 
 // Create the context with default values
@@ -31,7 +33,9 @@ const AuthContext = createContext<AuthContextType>({
     loginWithGoogle: async () => { },
     logout: async () => { },
     clearError: () => { },
+    updateUserProfile: async () => { },
 });
+
 
 // Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -144,6 +148,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Update user profile - NEW FUNCTION
+    const updateUserProfile = async (profileData: { displayName?: string; photoURI?: string | null }): Promise<void> => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            if (!user) {
+                throw new Error('No user is logged in');
+            }
+
+            const updatedUser = await updateUserProfileService(user, profileData);
+            setUser(updatedUser);
+        } catch (error) {
+            let errorMessage = 'Failed to update profile';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            setError(errorMessage);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Clear error
     const clearError = (): void => {
         setError(null);
@@ -160,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 loginWithGoogle,
                 logout,
                 clearError,
+                updateUserProfile, // Add the new function
             }}
         >
             {children}
