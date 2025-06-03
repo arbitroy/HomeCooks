@@ -61,7 +61,6 @@ export default function EditProfileScreen() {
             allowsEditing: true,
             aspect: [1, 1],
             allowsMultipleSelection: false,
-            aspect: [1, 1],
             quality: 1,
         });
 
