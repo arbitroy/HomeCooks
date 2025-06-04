@@ -1,3 +1,4 @@
+// app/services/reviews.ts - Simplified version (Alternative approach)
 import {
     collection,
     doc,
@@ -9,12 +10,11 @@ import {
     orderBy,
     limit,
     serverTimestamp,
-    runTransaction,
+    updateDoc,
     QueryDocumentSnapshot
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase';
 import { User } from './auth';
-import { Order } from './orders';
 
 // Review interface
 export interface Review {
@@ -54,7 +54,34 @@ const convertReview = (doc: QueryDocumentSnapshot): Review => {
     };
 };
 
-// Create a new review
+// Helper function to update cook ratings
+const updateCookRatings = async (cookId: string, newRating: number) => {
+    try {
+        const cookProfileRef = doc(firestore, 'cook_profiles', cookId);
+        const cookProfileSnap = await getDoc(cookProfileRef);
+
+        if (cookProfileSnap.exists()) {
+            const cookData = cookProfileSnap.data();
+            const currentRating = cookData.averageRating || 0;
+            const totalReviews = cookData.totalReviews || 0;
+
+            // Calculate new average rating
+            const newTotalReviews = totalReviews + 1;
+            const newAverageRating = 
+                ((currentRating * totalReviews) + newRating) / newTotalReviews;
+
+            await updateDoc(cookProfileRef, {
+                averageRating: newAverageRating,
+                totalReviews: newTotalReviews
+            });
+        }
+    } catch (error) {
+        console.error('Error updating cook ratings:', error);
+        // Don't throw here - review creation should succeed even if rating update fails
+    }
+};
+
+// Create a new review - SIMPLIFIED VERSION
 export const createReview = async (currentUser: User, reviewInput: ReviewInput): Promise<Review> => {
     try {
         if (!currentUser || currentUser.userType !== 'customer') {
@@ -93,7 +120,7 @@ export const createReview = async (currentUser: User, reviewInput: ReviewInput):
             throw new Error('You have already reviewed this order');
         }
 
-        // Create review
+        // Create review data
         const reviewData = {
             orderId: reviewInput.orderId,
             customerId: currentUser.uid,
@@ -106,36 +133,16 @@ export const createReview = async (currentUser: User, reviewInput: ReviewInput):
             createdAt: serverTimestamp()
         };
 
-        // Run transaction to update cook rating and add review
-        await runTransaction(firestore, async (transaction) => {
-            // Create new review
-            const newReviewRef = doc(collection(firestore, 'reviews'));
-            transaction.set(newReviewRef, reviewData);
+        // Step 1: Create the review
+        const newReviewRef = await addDoc(collection(firestore, 'reviews'), reviewData);
 
-            // Update cook average rating
-            const cookProfileRef = doc(firestore, 'cook_profiles', orderData.cookId);
-            const cookProfileSnap = await transaction.get(cookProfileRef);
-
-            if (cookProfileSnap.exists()) {
-                const cookData = cookProfileSnap.data();
-                const currentRating = cookData.averageRating || 0;
-                const totalReviews = cookData.totalReviews || 0;
-
-                // Calculate new average rating
-                const newTotalReviews = totalReviews + 1;
-                const newAverageRating = 
-                    ((currentRating * totalReviews) + reviewInput.rating) / newTotalReviews;
-
-                transaction.update(cookProfileRef, {
-                    averageRating: newAverageRating,
-                    totalReviews: newTotalReviews
-                });
-            }
-        });
+        // Step 2: Update cook ratings (separate operation)
+        // This happens after review creation, so review will exist even if this fails
+        await updateCookRatings(orderData.cookId, reviewInput.rating);
 
         // Return the created review
         return {
-            id: 'temp-id', // This would normally be set by Firestore
+            id: newReviewRef.id,
             ...reviewData,
             createdAt: new Date()
         } as Review;
